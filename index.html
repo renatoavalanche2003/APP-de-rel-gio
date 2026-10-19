@@ -1,0 +1,1539 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Maré</title>
+<meta name="description" content="Despertador de ciclo: acompanha o sono pelo acelerômetro e microfone do celular e acorda você no sono leve.">
+<meta name="theme-color" content="#0b0d14">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Maré">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,200..700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: uma coluna de leitura noturna (até 540px); dormir, despertar, KSS e relatório abrem em tela cheia.
+   Tema único escuro de propósito: o app é usado no quarto apagado. Âmbar no lugar de branco/azul para pouca luz azul. */
+:root{
+  --night:#0b0d14; --panel:#121624; --panel-2:#191e32; --line:#262d46;
+  --ink:#ece4d4; --muted:#9c9fb4; --faint:#62677f;
+  --ember:#ff9d5c; --on-ember:#1c0f06;
+  --st-w:#f2c66d; --st-r:#b796ff; --st-l:#6198ea; --st-d:#3a5bbd; --st-gap:#2c3147;
+  --danger:#ff7c6e;
+  --f-display:"Bricolage Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-body:"Atkinson Hyperlegible", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--night);color:var(--ink);font:16px/1.5 var(--f-body);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--night);z-index:10}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var(--ember);outline-offset:2px}
+a{color:var(--ember)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.dim{color:var(--muted)}
+.wrap{max-width:540px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:calc(env(safe-area-inset-top,0px) + 16px) calc(env(safe-area-inset-bottom,0px) + 48px)}
+
+.brand{display:flex;align-items:baseline;gap:10px;margin-bottom:14px}
+.brand h1{font:600 28px/1 var(--f-display);letter-spacing:-.02em;margin:0;display:flex;align-items:center;gap:8px}
+.brand svg{width:26px;height:26px}
+.brand small{color:var(--muted);font-size:13px}
+
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 6px);z-index:6}
+.tabs button{border:0;background:transparent;color:var(--muted);border-radius:10px;padding:9px 4px;font:500 14px var(--f-body)}
+.tabs button[aria-selected="true"]{background:var(--panel-2);color:var(--ink)}
+.panel{display:flex;flex-direction:column;gap:18px;padding-top:20px}
+
+.eyebrow{font:500 12px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0}
+.wake-wrap{display:flex;flex-direction:column;gap:4px}
+.wake-time{appearance:none;-webkit-appearance:none;font:250 clamp(68px,23vw,108px)/1 var(--f-display);font-variant-numeric:tabular-nums;letter-spacing:-.03em;color:var(--ink);background:transparent;border:0;padding:0;margin:0;width:100%;min-height:1.1em;text-align:left}
+.wake-time::-webkit-calendar-picker-indicator{display:none}
+.wake-time::-webkit-date-and-time-value{text-align:left}
+.line{margin:0;font-size:17px;text-wrap:pretty}
+.line b{color:var(--ember);font-weight:700}
+.sub{margin:0;color:var(--muted);font-size:14px}
+
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:8px 15px;font:500 14px var(--f-mono)}
+.chip[aria-pressed="true"]{border-color:var(--ember);color:var(--ember);background:rgba(255,157,92,.1)}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.row > span{min-width:0;flex:1 1 180px}
+.row > .switch{flex:none}
+.row .lbl{font-weight:700}
+.row .hint{display:block;color:var(--muted);font-size:13px;font-weight:400}
+.seg{display:inline-flex;background:var(--night);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;color:var(--muted);border-radius:8px;padding:6px 11px;font-size:14px}
+.seg button[aria-pressed="true"]{background:var(--panel-2);color:var(--ink)}
+.switch{position:relative;width:52px;height:30px;border-radius:999px;border:1px solid var(--line);background:var(--night);flex:none}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--faint);transition:transform .2s,background .2s}
+.switch[aria-checked="true"]{background:rgba(255,157,92,.18);border-color:var(--ember)}
+.switch[aria-checked="true"]::after{transform:translateX(22px);background:var(--ember)}
+
+.btn-primary{width:100%;border:0;border-radius:18px;background:var(--ember);color:var(--on-ember);font:650 20px var(--f-display);padding:19px 18px;letter-spacing:-.01em}
+.btn-primary:active{transform:translateY(1px)}
+.btn-ghost{border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:12px;padding:10px 14px;font-size:15px}
+.btn-link{border:0;background:none;color:var(--ember);padding:0;font-size:15px;text-decoration:underline;text-underline-offset:3px}
+
+details.card summary{cursor:pointer;list-style:none;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+details.card summary::-webkit-details-marker{display:none}
+details.card summary::after{content:"+";font:400 20px var(--f-mono);color:var(--muted)}
+details.card[open] summary::after{content:"–"}
+.checklist{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;color:var(--ink)}
+.checklist li::marker{color:var(--ember)}
+
+.meter{display:grid;grid-template-columns:96px 1fr;align-items:center;gap:10px;font-size:14px;color:var(--muted)}
+.bar{height:10px;border-radius:6px;background:var(--night);border:1px solid var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--ember);transition:width .12s linear}
+
+.nap-list{display:flex;flex-direction:column;gap:10px}
+.nap-opt{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;align-items:baseline;text-align:left;border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:16px}
+.nap-opt .n{font:300 40px/1 var(--f-display);font-variant-numeric:tabular-nums;grid-row:span 2;min-width:2.2ch}
+.nap-opt .n small{font:500 13px var(--f-mono);color:var(--muted);margin-left:2px}
+.nap-opt strong{font-size:16px}
+.nap-opt span{color:var(--muted);font-size:14px}
+.nap-opt[aria-pressed="true"]{border-color:var(--ember);background:rgba(255,157,92,.07)}
+.nap-opt[aria-pressed="true"] .n{color:var(--ember)}
+
+.night-card{cursor:pointer;text-align:left;color:inherit}
+.night-card canvas{width:100%;height:46px;display:block}
+.night-meta{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:14px}
+.tag{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line);border-radius:6px;padding:2px 6px;color:var(--muted)}
+.tag.ex{color:var(--st-w);border-color:rgba(242,198,109,.4)}
+.nights{display:flex;flex-direction:column;gap:12px}
+.insight{background:transparent;border:1px dashed var(--line);border-radius:14px;padding:14px;font-size:15px;margin:0}
+
+.prose{display:flex;flex-direction:column;gap:6px;max-width:65ch}
+.prose h2{font:600 22px/1.2 var(--f-display);letter-spacing:-.01em;margin:22px 0 4px;text-wrap:balance}
+.prose h2:first-child{margin-top:4px}
+.prose p,.prose li{margin:0 0 8px;text-wrap:pretty}
+.prose ul{margin:0;padding-left:20px}
+.prose .ref{font-size:14px;color:var(--muted)}
+.prose .ref a{word-break:break-all}
+.prose figure{margin:8px 0 12px}
+.prose figure canvas{width:100%;height:150px;display:block}
+.prose figcaption{font-size:13px;color:var(--muted)}
+.callout{border-left:3px solid var(--ember);padding:2px 0 2px 12px;color:var(--ink)}
+
+/* tela cheia */
+.overlay{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 22px) max(20px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 22px) max(20px,env(safe-area-inset-left,0px))}
+#sleep{background:#000;color:var(--ember);user-select:none;-webkit-user-select:none}
+.sl-top{display:flex;justify-content:space-between;gap:10px;font:500 12px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;opacity:.35}
+.sl-center{flex:1;display:flex;flex-direction:column;justify-content:center;gap:12px}
+#sleep .clock{font:200 clamp(80px,28vw,150px)/1 var(--f-display);font-variant-numeric:tabular-nums;letter-spacing:-.03em;opacity:.26;transition:opacity .6s}
+#sleep p{margin:0;opacity:.32;transition:opacity .6s;max-width:40ch}
+#sleep #slStatus{font-size:13px}
+#sleep.awake .clock{opacity:.9}
+#sleep.awake p{opacity:.85}
+#sleep .warn{color:var(--danger)}
+.sl-bottom{display:flex;flex-direction:column;gap:12px;opacity:.4;transition:opacity .6s}
+#sleep.awake .sl-bottom{opacity:1}
+.hold{position:relative;overflow:hidden;border:1px solid rgba(255,157,92,.45);background:transparent;color:var(--ember);border-radius:14px;padding:14px;font-weight:700}
+.hold .fill{position:absolute;inset:0;width:0;background:rgba(255,157,92,.22)}
+.hold.holding .fill{width:100%;transition:width 1.5s linear}
+.hold span{position:relative}
+
+#alarm{background:#120c14;color:#fff3e4;overflow:hidden}
+.sun{position:absolute;inset:-20% -40%;background:radial-gradient(60% 45% at 50% 100%,#ffd08a 0%,#ff9d5c 22%,#c4532e 42%,rgba(90,38,40,.6) 62%,rgba(18,12,20,0) 80%);transform:translateY(20%);animation:rise 60s ease-out forwards}
+@keyframes rise{to{transform:translateY(0)}}
+.al-center{position:relative;flex:1;display:flex;flex-direction:column;justify-content:center;gap:10px}
+.al-eyebrow{font:500 13px var(--f-mono);letter-spacing:.1em;text-transform:uppercase;margin:0;opacity:.8}
+.al-clock{font:250 clamp(84px,30vw,160px)/1 var(--f-display);font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+#alReason{margin:0;font-size:17px;max-width:36ch;text-wrap:pretty}
+.al-actions{position:relative;display:flex;flex-direction:column;gap:10px}
+.btn-dawn{border:0;border-radius:18px;background:#fff3e4;color:#2a140b;font:650 22px var(--f-display);padding:20px}
+.btn-dawn-ghost{border:1px solid rgba(255,243,228,.5);background:transparent;color:#fff3e4;border-radius:14px;padding:14px;font-weight:700}
+
+.sheet{background:var(--night);overflow-y:auto;-webkit-overflow-scrolling:touch}
+.sheet-in{max-width:540px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.sheet h2{font:600 26px/1.15 var(--f-display);letter-spacing:-.01em;margin:0;text-wrap:balance}
+.kss-list{display:flex;flex-direction:column;gap:6px}
+.kss-list button{display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:11px 14px;font-size:15px}
+.kss-list b{font:600 20px var(--f-display);color:var(--ember);text-align:center}
+
+.rp-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.big{font:300 clamp(40px,12vw,58px)/1.02 var(--f-display);letter-spacing:-.02em;margin:0}
+.big small{display:block;font:400 15px var(--f-body);color:var(--muted);letter-spacing:0;margin-top:6px}
+.stats{margin:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.stats div{background:var(--panel);padding:12px;min-width:0}
+.stats dt{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.stats dd{margin:4px 0 0;font:500 19px var(--f-display);font-variant-numeric:tabular-nums}
+.hypno{width:100%;height:210px;display:block}
+.stack{display:flex;height:12px;border-radius:6px;overflow:hidden;gap:2px}
+.stack i{display:block;height:100%}
+.legend{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;font-size:14px}
+.legend span{display:flex;align-items:center;gap:8px;min-width:0}
+.legend i{width:10px;height:10px;border-radius:3px;flex:none}
+.legend em{font-style:normal;margin-left:auto;font-family:var(--f-mono);color:var(--muted);font-size:13px}
+.wake-box{border-left:3px solid var(--ember);padding:2px 0 2px 12px;display:flex;flex-direction:column;gap:4px}
+.wake-box p{margin:0}
+.note{font-size:13px;color:var(--muted);margin:0}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+
+.banner{background:rgba(255,124,110,.08);border:1px solid rgba(255,124,110,.4);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;font-size:15px}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);transform:translateX(-50%);background:var(--panel-2);border:1px solid var(--line);color:var(--ink);padding:12px 16px;border-radius:12px;max-width:min(92vw,460px);z-index:80;font-size:15px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+
+@media (prefers-reduced-motion: reduce){
+  .sun{animation:none;transform:none}
+  *{transition:none!important}
+}
+@media (min-width:600px){ .wrap{padding-top:calc(env(safe-area-inset-top,0px) + 32px)} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="brand">
+    <h1><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M20.5 4.5a11.5 11.5 0 1 0 7 20.6A12.5 12.5 0 0 1 20.5 4.5z" fill="#ff9d5c"/><path d="M3 23c3 0 3-2.2 6-2.2S12 23 15 23s3-2.2 6-2.2 3 2.2 6 2.2" fill="none" stroke="#6198ea" stroke-width="2" stroke-linecap="round"/></svg>Maré</h1>
+    <small>despertador de ciclo</small>
+  </header>
+
+  <div id="banner" class="banner" hidden></div>
+
+  <nav class="tabs" role="tablist" aria-label="Seções">
+    <button role="tab" id="tab-noite" aria-controls="p-noite" aria-selected="true">Noite</button>
+    <button role="tab" id="tab-cochilo" aria-controls="p-cochilo" aria-selected="false">Cochilo</button>
+    <button role="tab" id="tab-noites" aria-controls="p-noites" aria-selected="false">Noites</button>
+    <button role="tab" id="tab-ciencia" aria-controls="p-ciencia" aria-selected="false">Ciência</button>
+  </nav>
+
+  <!-- NOITE -->
+  <section class="panel" id="p-noite" role="tabpanel" aria-labelledby="tab-noite">
+    <div class="wake-wrap">
+      <p class="eyebrow"><label for="wakeBy">Acordar até</label></p>
+      <input class="wake-time" id="wakeBy" type="time" value="06:30" required>
+      <p class="line" id="nightLine"></p>
+      <p class="sub mono" id="nightSpan"></p>
+    </div>
+
+    <div>
+      <p class="eyebrow" style="margin-bottom:8px">Janela inteligente</p>
+      <div class="chips" id="winChips">
+        <button class="chip" data-v="10">10 min</button>
+        <button class="chip" data-v="20">20 min</button>
+        <button class="chip" data-v="30">30 min</button>
+        <button class="chip" data-v="45">45 min</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <span><span class="lbl">Microfone</span><span class="hint">Ronco e ruídos de lençol. Analisado ao vivo, nada é gravado.</span></span>
+        <button class="switch" id="micSw" role="switch" aria-checked="true" aria-label="Usar microfone"></button>
+      </div>
+      <div class="row">
+        <span><span class="lbl">Colchão</span><span class="hint">Macio amortece o movimento: o sensor fica mais sensível.</span></span>
+        <div class="seg" id="matSeg">
+          <button data-v="firme">Firme</button><button data-v="medio">Médio</button><button data-v="macio">Macio</button>
+        </div>
+      </div>
+      <div class="row">
+        <span><span class="lbl">Som do alarme</span><span class="hint">Começa baixinho e sobe em 60 s.</span></span>
+        <div class="row" style="gap:8px">
+          <div class="seg" id="sndSeg"><button data-v="amanhecer">Amanhecer</button><button data-v="sinos">Sinos</button></div>
+          <button class="btn-link" id="preview">Ouvir</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-primary" id="startNight">Começar a noite</button>
+
+    <div class="card" id="watchCard">
+      <div class="row">
+        <span><span class="lbl">Galaxy Watch</span><span class="hint" id="wStatus"></span></span>
+        <button class="btn-ghost" id="wConnect">Conectar</button>
+      </div>
+      <div class="actions" id="wActions" hidden>
+        <button class="btn-ghost" id="wNight">Começar a noite no relógio</button>
+        <button class="btn-ghost" id="wImport">Importar sessões</button>
+      </div>
+      <p class="note" id="wNote">Antes de conectar, abra o Maré no relógio: ele fica visível ao celular por 10 min. Ainda não instalou? <a href="Mare-relogio.apk" download>Baixe o app do relógio (APK)</a>.</p>
+    </div>
+
+    <details class="card">
+      <summary>Antes de deitar</summary>
+      <ul class="checklist">
+        <li>Celular na tomada: a tela fica ligada a noite toda.</li>
+        <li>Sobre o colchão, perto do travesseiro, tela para baixo.</li>
+        <li>Volume alto e, no iPhone, modo silencioso desligado.</li>
+        <li>Não perturbe ligado, para notificações não acenderem nada.</li>
+        <li>Coloque também um despertador comum 5 min depois do limite. Se o navegador fechar, ele te salva.</li>
+      </ul>
+    </details>
+
+    <details class="card" id="testCard">
+      <summary>Testar sensores</summary>
+      <div class="meter"><span>Movimento</span><div class="bar"><i id="mMove"></i></div></div>
+      <div class="meter"><span>Som</span><div class="bar"><i id="mSound"></i></div></div>
+      <p class="mono dim" id="testLog" style="margin:0;font-size:13px">Deixe o celular no colchão e bata de leve ao lado dele. A barra de movimento deve subir.</p>
+      <div><button class="btn-ghost" id="testBtn">Iniciar teste</button></div>
+    </details>
+
+    <div>
+      <p class="eyebrow" style="margin-bottom:8px">Última noite</p>
+      <div id="lastNight"></div>
+    </div>
+  </section>
+
+  <!-- COCHILO -->
+  <section class="panel" id="p-cochilo" role="tabpanel" aria-labelledby="tab-cochilo" hidden>
+    <div class="nap-list" id="napList">
+      <button class="nap-opt" data-v="10"><span class="n">10<small>min</small></span><strong>Rápido</strong><span>Melhora imediata e quase sem grogue. O melhor depois de noite curta ou plantão.</span></button>
+      <button class="nap-opt" data-v="20"><span class="n">20<small>min</small></span><strong>Power nap</strong><span>Bom ganho, mas pode levar uns 30 min para o efeito aparecer.</span></button>
+      <button class="nap-opt" data-v="90"><span class="n">90<small>min</small></span><strong>Ciclo completo</strong><span>Passa por N3 e REM e termina no sono leve. Janela de 15 min no fim.</span></button>
+    </div>
+    <p class="line" id="napLine"></p>
+    <p class="sub">O tempo conta a partir de quando você pega no sono, não de quando deita. Se o sono não vier em 25 min, eu toco assim mesmo.</p>
+    <button class="btn-primary" id="startNap">Começar cochilo</button>
+    <button class="btn-ghost" id="wNap" hidden>Cochilo no relógio</button>
+  </section>
+
+  <!-- NOITES -->
+  <section class="panel" id="p-noites" role="tabpanel" aria-labelledby="tab-noites" hidden>
+    <div class="actions"><button class="btn-ghost" id="wImport2" hidden>Importar do relógio</button></div>
+    <p class="insight" id="insight"></p>
+    <div class="nights" id="nights"></div>
+  </section>
+
+  <!-- CIÊNCIA -->
+  <section class="panel" id="p-ciencia" role="tabpanel" aria-labelledby="tab-ciencia" hidden>
+    <article class="prose">
+      <h2>O que acontece numa noite</h2>
+      <p>O sono anda em ciclos de cerca de 90 minutos: N1 → N2 → N3 → N2 → REM. No começo da noite, a adenosina acumulada durante a vigília inibe os sistemas que mantêm o córtex acordado, e os neurônios talamocorticais passam a disparar em salvas sincrônicas: são as ondas delta do N3. À medida que essa pressão é paga, o N3 encurta. O REM, mais preso ao relógio circadiano, faz o caminho oposto e se alonga perto da manhã.</p>
+      <figure>
+        <canvas id="sciHypno" aria-label="Hipnograma de exemplo: N3 concentrado nos primeiros ciclos, REM crescendo no fim da noite"></canvas>
+        <figcaption>Noite de exemplo analisada pelo Maré. Os blocos de profundo ficam no começo; os de REM, no fim. A faixa laranja é a janela do alarme.</figcaption>
+      </figure>
+
+      <h2>Por que a hora exata de acordar importa</h2>
+      <p>Acordar de repente em N3 produz mais inércia do sono do que acordar em N1 ou N2; o REM fica no meio (Tassi &amp; Muzet, 2000). Depois de privação, quanto maior a potência delta nos minutos antes do despertar, pior o desempenho em seguida (Tassi et al., 2005). A inércia piora com dívida de sono e quando você acorda no vale da temperatura corporal, na madrugada (Hilditch &amp; McHill, 2019).</p>
+      <p class="callout">O alarme tenta te pegar entre um ciclo e outro, quando o cérebro já está perto da superfície.</p>
+
+      <h2>O que o celular consegue ver</h2>
+      <p>O acelerômetro sente o movimento que o seu corpo passa ao colchão; o microfone, o farfalhar do lençol e o ronco. Movimentos grandes aparecem acordado, em N1/N2 e nas viradas de posição que costumam fechar cada ciclo.</p>
+      <p>O problema é que REM e N3 são ambos imóveis. No REM o córtex está quase tão ativo quanto acordado, mas os motoneurônios somáticos são inibidos ativamente por GABA-A, GABA-B e glicina (Peever, 2011), num circuito que sai do núcleo sublaterodorsal da ponte e passa por pré-motoneurônios do bulbo ventromedial (Luppi et al., 2011). O resultado é atonia. No N3 não há atonia, mas o tônus é baixo e quase não há movimento. Para um sensor de movimento, os dois são silêncio.</p>
+      <p>Por isso o Maré não <em>vê</em> o REM: ele infere. Imobilidade de 10 minutos ou mais vira "profundo" ou "REM" conforme a posição dentro do ciclo, o número do ciclo (N3 no início dos primeiros, REM no fim dos últimos) e a taxa de microcontrações, que lembram os abalos fásicos do REM.</p>
+
+      <h2>Quão confiável é</h2>
+      <p>Comparado à polissonografia, um app de iPhone acertou cerca de 86% das épocas em sono × vigília, mas só cerca de 46% dos estágios (Bhat et al., 2015). Em outro estudo, nenhum dos quatro apps testados, Sleep Cycle incluído, conseguiu detectar REM (Fino et al., 2019).</p>
+      <p>Na prática: confie no "dormindo × acordado" e nos momentos de movimento; trate profundo e REM como estimativa. É por isso que o despertador não depende dessa separação. Ele toca no primeiro movimento dentro da janela, que é o sinal que o sensor mede bem e que marca sono leve ou transição de ciclo.</p>
+
+      <h2>Cochilo</h2>
+      <p>Depois de uma noite cortada para cerca de 5 h, um cochilo de 10 min trouxe melhora imediata de sonolência e desempenho; o de 20 min, melhora a partir de uns 35 min depois; o de 30 min causou inércia antes de ajudar (Brooks &amp; Lack, 2006). Como o N3 aparece mais cedo quando você está em dívida de sono, o cronômetro do Maré conta a partir do início do sono detectado.</p>
+
+      <h2>Como o algoritmo decide</h2>
+      <ul>
+        <li>Épocas de 30 s. A atividade de cada época soma a intensidade de movimento de cada segundo acima do ruído do próprio aparelho (limiar adaptativo: percentil 30 dos últimos 10 min).</li>
+        <li>Sono × vigília: média ponderada de 4 min antes a 2 min depois de cada época, no estilo de Cole-Kripke (1992).</li>
+        <li>Início do sono: 5 min seguidos sem movimento (3 min no cochilo).</li>
+        <li>Ciclos: a maior mudança de posição entre 70 e 120 min depois do ciclo anterior. Sem movimento claro, assume 90 min.</li>
+        <li>Ronco: sons que se repetem a cada 2–7 s com ritmo regular são separados de ruídos isolados e não contam como movimento.</li>
+        <li>Na janela, um movimento de 2 s ou mais dispara o alarme. Sem movimento, ele toca no horário limite.</li>
+      </ul>
+
+      <h2>Com o Galaxy Watch</h2>
+      <p>O relógio acrescenta o que o celular não enxerga: o sistema nervoso autônomo. No N3 predomina o tônus vagal, e a frequência cardíaca fica no ponto mais baixo da noite e estável. No REM há surtos simpáticos: a FC sobe e oscila, com o corpo imóvel pela atonia. O Maré combina a posição no ciclo com a FC de cada época, normalizada pela sua própria noite: imóvel com FC baixa e estável pesa para profundo; imóvel com FC alta e oscilante, para REM.</p>
+      <p>É melhor do que o celular no colchão, mas continua estimativa. Num estudo com 11 rastreadores comparados à polissonografia, o Galaxy Watch 5 entre eles, a concordância época a época variou bastante entre aparelhos, e os relógios tenderam a superestimar a eficiência do sono (Lee et al., 2023).</p>
+
+      <h2>Limites</h2>
+      <ul>
+        <li>O navegador pausa os sensores com a tela apagada. Por isso a tela fica ligada, em preto, e o despertador comum de segurança é obrigatório.</li>
+        <li>Cama de casal, pet e colchão muito grosso confundem o acelerômetro.</li>
+        <li>Não serve para diagnóstico. Ronco alto com pausas e engasgos é motivo para polissonografia, não para app.</li>
+      </ul>
+
+      <h2>Referências</h2>
+      <p class="ref">Artigos via PubMed.</p>
+      <p class="ref">Tassi P, Muzet A. Sleep inertia. <i>Sleep Med Rev</i>. 2000;4(4):341-53. <a href="https://doi.org/10.1053/smrv.2000.0098" target="_blank" rel="noopener">doi:10.1053/smrv.2000.0098</a></p>
+      <p class="ref">Tassi P, et al. EEG spectral power and cognitive performance during sleep inertia. <i>Physiol Behav</i>. 2006;87(1):177-84. <a href="https://doi.org/10.1016/j.physbeh.2005.09.017" target="_blank" rel="noopener">doi:10.1016/j.physbeh.2005.09.017</a></p>
+      <p class="ref">Hilditch CJ, McHill AW. Sleep inertia: current insights. <i>Nat Sci Sleep</i>. 2019;11:155-65. <a href="https://doi.org/10.2147/NSS.S188911" target="_blank" rel="noopener">doi:10.2147/NSS.S188911</a></p>
+      <p class="ref">Peever J. Control of motoneuron function and muscle tone during REM sleep, REM sleep behavior disorder and cataplexy/narcolepsy. <i>Arch Ital Biol</i>. 2011;149(4):454-66. <a href="https://doi.org/10.4449/aib.v149i4.1257" target="_blank" rel="noopener">doi:10.4449/aib.v149i4.1257</a></p>
+      <p class="ref">Luppi PH, et al. The neuronal network responsible for paradoxical sleep and its dysfunctions causing narcolepsy and REM behavior disorder. <i>Sleep Med Rev</i>. 2011;15(3):153-63. <a href="https://doi.org/10.1016/j.smrv.2010.08.002" target="_blank" rel="noopener">doi:10.1016/j.smrv.2010.08.002</a></p>
+      <p class="ref">Bhat S, et al. Is there a clinical role for smartphone sleep apps? <i>J Clin Sleep Med</i>. 2015;11(7):709-15. <a href="https://doi.org/10.5664/jcsm.4840" target="_blank" rel="noopener">doi:10.5664/jcsm.4840</a></p>
+      <p class="ref">Fino E, et al. (Not so) Smart sleep tracking through the phone. <i>J Sleep Res</i>. 2020;29(1):e12935. <a href="https://doi.org/10.1111/jsr.12935" target="_blank" rel="noopener">doi:10.1111/jsr.12935</a></p>
+      <p class="ref">Brooks A, Lack L. A brief afternoon nap following nocturnal sleep restriction: which nap duration is most recuperative? <i>Sleep</i>. 2006;29(6):831-40. <a href="https://doi.org/10.1093/sleep/29.6.831" target="_blank" rel="noopener">doi:10.1093/sleep/29.6.831</a></p>
+      <p class="ref">Lee T, et al. Accuracy of 11 wearable, nearable, and airable consumer sleep trackers. <i>JMIR Mhealth Uhealth</i>. 2023;11:e50983. <a href="https://doi.org/10.2196/50983" target="_blank" rel="noopener">doi:10.2196/50983</a></p>
+      <p class="ref">Cole RJ, et al. Automatic sleep/wake identification from wrist activity. <i>Sleep</i>. 1992;15(5):461-9. <a href="https://doi.org/10.1093/sleep/15.5.461" target="_blank" rel="noopener">doi:10.1093/sleep/15.5.461</a></p>
+    </article>
+  </section>
+</div>
+
+<!-- DORMINDO -->
+<div id="sleep" class="overlay" hidden>
+  <div class="sl-top"><span id="slMode">Noite</span><span id="slSensors"></span></div>
+  <div class="sl-center">
+    <div class="clock" id="slClock">00:00</div>
+    <p id="slLine"></p>
+    <p id="slStatus" class="mono"></p>
+  </div>
+  <div class="sl-bottom">
+    <p style="font-size:14px">Toque na tela para ver detalhes. Celular na tomada, virado para baixo, perto do travesseiro.</p>
+    <button class="hold" id="holdStop"><span class="fill"></span><span>Segure para encerrar</span></button>
+  </div>
+</div>
+
+<!-- DESPERTAR -->
+<div id="alarm" class="overlay" hidden>
+  <div class="sun"></div>
+  <div class="al-center">
+    <p class="al-eyebrow" id="alEyebrow">Bom dia</p>
+    <div class="al-clock" id="alClock">06:30</div>
+    <p id="alReason"></p>
+  </div>
+  <div class="al-actions">
+    <button class="btn-dawn" id="alStop">Acordei</button>
+    <button class="btn-dawn-ghost" id="alSnooze">Soneca 5 min</button>
+  </div>
+</div>
+
+<!-- KSS -->
+<div id="kss" class="overlay sheet" hidden>
+  <div class="sheet-in">
+    <h2>Como você está agora?</h2>
+    <p class="sub">Escala de Sonolência de Karolinska. Responda sem pensar muito: é ela que mostra, com o tempo, se acordar no movimento te deixa menos grogue.</p>
+    <div class="kss-list" id="kssList"></div>
+    <div><button class="btn-ghost" id="kssSkip">Pular</button></div>
+  </div>
+</div>
+
+<!-- RELATÓRIO -->
+<div id="report" class="overlay sheet" hidden>
+  <div class="sheet-in" id="reportIn"></div>
+</div>
+
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script>
+/* Maré — núcleo de análise (puro, sem DOM). Testável em Node. */
+const Core = (() => {
+  const EPOCH_S = 30;
+  const EPM = 60 / EPOCH_S; // épocas por minuto
+
+  const T = {
+    moveAct: 1.5,     // atividade mínima de uma época para contar como "movimento"
+    moveSec: 2,       // ou: nº de segundos com movimento dentro da época
+    majorAct: 6,      // mudança de posição (candidata a fronteira de ciclo)
+    wakeD: 4,         // escore ponderado acima disso = vigília
+    onsetNight: 5 * EPM,
+    onsetNap: 3 * EPM,
+    deepStill: 10 * EPM,  // imobilidade contínua que separa "leve" de "profundo/REM"
+    cycle: 90 * EPM,
+    cycleMin: 70 * EPM,
+    cycleMax: 120 * EPM,
+    actCap: 40
+  };
+
+  // Janela ponderada no espírito de Cole-Kripke (1992): passado, presente e um pouco de futuro.
+  const W = [[-8, .04], [-7, .04], [-6, .05], [-5, .05], [-4, .06], [-3, .07], [-2, .09],
+             [-1, .12], [0, .30], [1, .10], [2, .08], [3, .05], [4, .04]];
+
+  // Propensão a N3 cai e a REM sobe ao longo dos ciclos (índice = ciclo-1).
+  const W3 = [1, .75, .4, .15, .05];
+  const WR = [.35, .6, .85, 1, 1];
+
+  const act = e => e.gap ? 0 : Math.min(T.actCap, (e.a || 0) + 1.5 * (e.s || 0));
+  const isMove = e => !e.gap && (act(e) >= T.moveAct || (e.m || 0) >= T.moveSec);
+  const isTwitch = e => !e.gap && !isMove(e) && act(e) > 0.2;
+  const g = (p, c, w) => Math.exp(-(((p - c) / w) ** 2));
+
+  function dScores(ep) {
+    const n = ep.length, A = ep.map(act), D = new Array(n);
+    for (let t = 0; t < n; t++) {
+      let d = 0;
+      for (const [k, w] of W) {
+        const i = t + k;
+        if (i >= 0 && i < n) d += w * A[i];
+      }
+      D[t] = d;
+    }
+    return D;
+  }
+
+  function findOnset(ep, D, need) {
+    let run = 0;
+    for (let t = 0; t < ep.length; t++) {
+      const ok = !ep[t].gap && !isMove(ep[t]) && D[t] < T.wakeD;
+      run = ok ? run + 1 : 0;
+      if (run >= need) return t - need + 1;
+    }
+    return -1;
+  }
+
+  function cycleBounds(ep, onset) {
+    const n = ep.length, bounds = [onset];
+    let b = onset;
+    for (;;) {
+      const lo = b + T.cycleMin, hi = Math.min(n - 1, b + T.cycleMax);
+      if (lo >= n) break;
+      let best = -1, bestScore = 0;
+      for (let i = lo; i <= hi; i++) {
+        if (!isMove(ep[i]) || act(ep[i]) < T.majorAct) continue;
+        let s = 0;
+        for (let j = i - 2; j <= i + 2; j++) if (j >= 0 && j < n) s += act(ep[j]);
+        if (s > bestScore) { bestScore = s; best = i; }
+      }
+      if (best < 0) {
+        if (b + T.cycle < n && hi === b + T.cycleMax) best = b + T.cycle; // sem movimento claro: assume 90 min
+        else break;
+      }
+      bounds.push(best);
+      b = best;
+    }
+    return bounds;
+  }
+
+  function twitchRate(ep, t) {
+    let c = 0, n = 0;
+    for (let i = Math.max(0, t - 19); i <= t; i++) { n++; if (isTwitch(ep[i])) c++; }
+    return n ? c / n : 0;
+  }
+
+  /* Frequência cardíaca (relógio): N3 = FC baixa e estável (predomínio vagal);
+     REM = FC mais alta e oscilante (instabilidade autonômica). Normalizada pela própria noite. */
+  const median = a => { const s = a.slice().sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : 0; };
+  function hrFeatures(ep, onset) {
+    const n = ep.length;
+    if (onset < 0) return null;
+    const hr = ep.map(e => (!e.gap && e.hr > 0) ? e.hr : 0);
+    let tot = 0, ok = 0;
+    for (let t = onset; t < n; t++) if (!ep[t].gap) { tot++; if (hr[t]) ok++; }
+    if (!tot || ok / tot < 0.5) return null;
+    const V = new Array(n).fill(NaN);
+    for (let t = 0; t < n; t++) {
+      const v = []; let sdIn = 0;
+      for (let i = Math.max(0, t - 5); i <= t; i++) if (hr[i]) { v.push(hr[i]); sdIn += ep[i].hrSd || 0; }
+      if (v.length >= 3) {
+        const m = v.reduce((a, x) => a + x, 0) / v.length;
+        V[t] = Math.sqrt(v.reduce((a, x) => a + (x - m) ** 2, 0) / v.length) + 0.5 * sdIn / v.length;
+      }
+    }
+    const hs = [], vs = [];
+    for (let t = onset; t < n; t++) if (hr[t] && !isMove(ep[t])) { hs.push(hr[t]); if (!isNaN(V[t])) vs.push(V[t]); }
+    if (hs.length < 20) return null;
+    const mH = median(hs), sH = Math.max(2, median(hs.map(x => Math.abs(x - mH))) * 1.4826);
+    const mV = median(vs), sV = Math.max(0.4, median(vs.map(x => Math.abs(x - mV))) * 1.4826);
+    const cl = x => Math.max(-3, Math.min(3, x));
+    return { hr, mH, zH: hr.map(x => x ? cl((x - mH) / sH) : 0), zV: V.map(x => isNaN(x) ? 0 : cl((x - mV) / sV)) };
+  }
+
+  /** Estágios: W acordado · L leve (N1/N2) · D profundo provável (N3) · R REM provável · ? sem dados */
+  function score(ep, opts = {}) {
+    const nap = opts.mode === 'nap';
+    const n = ep.length;
+    const D = dScores(ep);
+    const onset = findOnset(ep, D, nap ? T.onsetNap : T.onsetNight);
+    const S = new Array(n);
+    let run = 0;
+    for (let t = 0; t < n; t++) { run = (ep[t].gap || isMove(ep[t])) ? 0 : run + 1; S[t] = run; }
+    const bounds = onset >= 0 ? cycleBounds(ep, onset) : [];
+    const F = hrFeatures(ep, onset);
+    const still = F ? 8 * EPM : T.deepStill; // com FC dá para decidir um pouco mais cedo
+    const stage = new Array(n);
+    let k = 0;
+    for (let t = 0; t < n; t++) {
+      if (ep[t].gap) { stage[t] = '?'; continue; }
+      if (onset < 0 || t < onset || D[t] >= T.wakeD) { stage[t] = 'W'; continue; }
+      if (S[t] < still) { stage[t] = 'L'; continue; }
+      while (k + 1 < bounds.length && bounds[k + 1] <= t) k++;
+      const b0 = bounds[k], b1 = bounds[k + 1];
+      const len = b1 != null ? (b1 - b0) : Math.max(T.cycle, opts.live ? T.cycle : n - b0);
+      const p = Math.min(1, (t - b0) / len);
+      const ci = Math.min(W3.length - 1, k);
+      const n3 = W3[ci] * g(p, .30, .22);
+      const rem = WR[ci] * g(p, .85, .16) + .5 * twitchRate(ep, t);
+      if (F && F.hr[t]) {
+        // probabilidade a priori (posição no ciclo) × verossimilhança da FC de cada estágio
+        const zh = F.zH[t], zv = F.zV[t];
+        const lk = (mh, mv) => Math.exp(-((zh - mh) ** 2 + (zv - mv) ** 2) / (2 * 1.2 ** 2));
+        const pD = (n3 + .05) * lk(-1.3, -.9), pR = (rem + .05) * lk(1.1, 1.3), pL = .3 * lk(0, -.1);
+        stage[t] = pL >= pD && pL >= pR ? 'L' : (pD >= pR ? 'D' : 'R');
+        continue;
+      }
+      stage[t] = Math.max(n3, rem) < .2 ? 'L' : (n3 >= rem ? 'D' : 'R');
+    }
+    return { D, onset, S, bounds, stage, hasHr: !!F };
+  }
+
+  function summarize(sess, sc) {
+    const ep = sess.epochs, n = ep.length, min = c => c / EPM;
+    const c = { W: 0, L: 0, D: 0, R: 0, '?': 0 };
+    for (let t = Math.max(0, sc.onset); t < n; t++) c[sc.stage[t]]++;
+    const inBed = (sess.end - sess.start) / 60000;
+    const tst = min(c.L + c.D + c.R);
+    const last = sc.bounds.length ? sc.bounds[sc.bounds.length - 1] : -1;
+    let endStage = null;
+    for (let t = n - 1; t >= Math.max(0, n - 3); t--) { if (sc.stage[t] !== '?') { endStage = sc.stage[t]; break; } }
+    // FC mínima: menor média móvel de 10 min durante o sono
+    let hrMin = null;
+    if (sc.hasHr) {
+      for (let t = Math.max(0, sc.onset); t + 20 <= n; t++) {
+        let s = 0, c = 0;
+        for (let i = t; i < t + 20; i++) if (ep[i].hr > 0 && sc.stage[i] !== 'W') { s += ep[i].hr; c++; }
+        if (c >= 15) { const m = s / c; if (hrMin == null || m < hrMin) hrMin = m; }
+      }
+    }
+    return {
+      hrMin,
+      inBed, tst,
+      latency: sc.onset >= 0 ? sc.onset / EPM : null,
+      waso: sc.onset >= 0 ? min(c.W) : 0,
+      eff: inBed > 0 ? Math.min(1, tst / inBed) : 0,
+      W: min(c.W), L: min(c.L), D: min(c.D), R: min(c.R), gap: min(c['?']),
+      cyclesDone: Math.max(0, sc.bounds.length - 1),
+      lastCycleMin: last >= 0 ? (n - last) / EPM : 0,
+      snore: min(ep.filter(e => e.snore).length),
+      moves: ep.filter(isMove).length,
+      endStage
+    };
+  }
+
+  /* ---------- noite de exemplo (determinística) ---------- */
+  function prng(seed) {
+    return () => {
+      seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+      let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+
+  function sampleNight(baseDate = new Date()) {
+    const r = prng(19);
+    const U = (a, b) => a + (b - a) * r();
+    const d = new Date(baseDate); d.setHours(23, 20, 0, 0); d.setDate(d.getDate() - 1);
+    const start = d.getTime();
+    // roteiro "verdadeiro" (para testar o classificador)
+    const plan = [['W', 14]];
+    const cyc = [
+      { n2a: 12, n3: 44, n2b: 22, rem: 10 },
+      { n2a: 14, n3: 30, n2b: 32, rem: 20 },
+      { n2a: 20, n3: 12, n2b: 34, rem: 26, wakeAfter: 3 },
+      { n2a: 26, n3: 4, n2b: 30, rem: 30 },
+      { n2a: 22, n3: 0, n2b: 24, rem: 10 }
+    ];
+    cyc.forEach((c, i) => {
+      plan.push(['N2', c.n2a, i]);
+      if (c.n3) plan.push(['N3', c.n3, i]);
+      plan.push(['N2', c.n2b, i]);
+      plan.push(['REM', c.rem, i]);
+      if (i < cyc.length - 1) plan.push(['MOVE', 0.5, i]);
+      if (c.wakeAfter) plan.push(['W', c.wakeAfter, i]);
+    });
+    const ep = [], truth = [];
+    for (const [st, mins, ci] of plan) {
+      const k = Math.round(mins * EPM);
+      for (let j = 0; j < k; j++) {
+        const e = { a: 0, m: 0, s: 0, snore: false };
+        if (st === 'W') {
+          if (r() < .65) { e.a = U(3, 12); e.m = Math.round(U(3, 9)); } else e.a = U(0, .8);
+          if (r() < .3) e.s = 1;
+        } else if (st === 'MOVE') {
+          e.a = U(15, 28); e.m = Math.round(U(7, 13)); e.s = 1;
+        } else if (st === 'N2') {
+          const x = r();
+          if (x < .035) { e.a = U(2, 5); e.m = 2 + Math.round(r()); } else if (x < .11) e.a = U(.25, 1);
+          if (ci < 2 && r() < .6) e.snore = true;
+        } else if (st === 'N3') {
+          if (r() < .02) e.a = U(.25, .8);
+          if (ci < 2 && r() < .75) e.snore = true;
+        } else if (st === 'REM') {
+          const x = r();
+          if (x < .02) { e.a = U(2, 3.5); e.m = 2; } else if (x < .3) e.a = U(.3, 1.2);
+        }
+        e.a = Math.round(e.a * 10) / 10;
+        ep.push(e);
+        truth.push(st === 'N2' ? 'L' : st === 'N3' ? 'D' : st === 'REM' ? 'R' : 'W');
+      }
+    }
+    // despertar: movimento em sono leve dentro da janela (06:30–07:00)
+    const end = start + ep.length * EPOCH_S * 1000;
+    const wakeBy = new Date(d); wakeBy.setDate(wakeBy.getDate() + 1); wakeBy.setHours(7, 0, 0, 0);
+    ep[ep.length - 1].a = 9.5; ep[ep.length - 1].m = 6;
+    return {
+      id: 'exemplo', example: true, mode: 'night', start, end,
+      wakeBy: wakeBy.getTime(), windowMin: 30,
+      alarm: { at: end, reason: 'move' }, kss: 4, epochs: ep, truth
+    };
+  }
+
+  /* ---------- relógio: protocolo Bluetooth (espelha Codec.java) ---------- */
+  const WATCH = {
+    SVC: '4d415245-0000-4b1c-8f0a-5c3e9d7a1b20',
+    CTRL: '4d415245-0001-4b1c-8f0a-5c3e9d7a1b20',
+    DATA: '4d415245-0002-4b1c-8f0a-5c3e9d7a1b20',
+    REC: 6, PER_CHUNK: 80
+  };
+  function decodeWatch(bytes) {
+    const out = [];
+    for (let i = 0; i + WATCH.REC <= bytes.length; i += WATCH.REC) {
+      const fl = bytes[i + 5];
+      out.push({
+        a: (bytes[i] | (bytes[i + 1] << 8)) / 10, m: bytes[i + 2], s: 0, snore: false,
+        hr: bytes[i + 3], hrSd: bytes[i + 4] / 10, gap: !!(fl & 1)
+      });
+    }
+    return out;
+  }
+  function fromWatch(meta, epochs) {
+    const s = {
+      id: meta.id, source: 'watch', mode: meta.mode, start: meta.start, end: meta.end,
+      epochs: epochs.slice(0, meta.n), sensors: { motion: true, mic: false, hr: true }, snoozes: meta.sz || 0
+    };
+    if (meta.mode === 'night') { s.wakeBy = meta.wakeBy; s.windowMin = meta.win; } else s.napMin = meta.nap;
+    if (meta.alarmAt) s.alarm = { at: meta.alarmAt, reason: meta.reason };
+    return s;
+  }
+  const u32le = x => [x & 255, (x >>> 8) & 255, (x >>> 16) & 255, (x >>> 24) & 255];
+  const cmd = {
+    list: () => [1], meta: i => [2, i], chunk: (i, k) => [3, i, k & 255, (k >> 8) & 255],
+    night: (wakeByMs, win) => [4, ...u32le(Math.floor(wakeByMs / 1000)), win], nap: min => [5, min], stop: () => [6]
+  };
+
+  return { EPOCH_S, EPM, T, act, isMove, isTwitch, score, summarize, sampleNight, findOnset, dScores, WATCH, decodeWatch, fromWatch, cmd };
+})();
+
+
+
+</script>
+<script>
+(() => {
+'use strict';
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const pad = n => String(n).padStart(2, '0');
+const hm = ms => { const d = new Date(ms); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+const num = (x, d = 1) => x.toFixed(d).replace('.', ',');
+const durTxt = min => { min = Math.max(0, Math.round(min)); const h = Math.floor(min / 60), m = min % 60; return h ? `${h} h ${pad(m)} min` : `${m} min`; };
+const durShort = min => { min = Math.max(0, Math.round(min)); const h = Math.floor(min / 60), m = min % 60; return h ? `${h}h${pad(m)}` : `${m} min`; };
+const DIAS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+const dateTxt = ms => { const d = new Date(ms); return `${DIAS[d.getDay()]}, ${d.getDate()} ${MESES[d.getMonth()]}`; };
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+/* ---------------- armazenamento ---------------- */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+};
+const KEY = { settings: 'mare.settings.v1', sessions: 'mare.sessions.v1', active: 'mare.active.v1' };
+const DEFAULTS = { wakeBy: '06:30', windowMin: 30, mic: true, mattress: 'medio', sound: 'amanhecer', napMin: 20 };
+const settings = Object.assign({}, DEFAULTS, store.get(KEY.settings, {}));
+const saveSettings = () => store.set(KEY.settings, settings);
+const SENS = { firme: 3.4, medio: 2.8, macio: 2.3 };
+
+const pack = s => {
+  const o = Object.assign({}, s);
+  delete o.truth; delete o._winChecked;
+  o.epochs = s.epochs.map(e => [Math.round((e.a || 0) * 10) / 10, e.m | 0, e.s | 0, e.snore ? 1 : 0, e.gap ? 1 : 0, e.hr | 0, Math.round((e.hrSd || 0) * 10)]);
+  return o;
+};
+const unpack = p => Object.assign({}, p, { epochs: p.epochs.map(x => ({ a: x[0], m: x[1], s: x[2], snore: !!x[3], gap: !!x[4], hr: x[5] || 0, hrSd: (x[6] || 0) / 10 })) });
+const loadSessions = () => store.get(KEY.sessions, []).map(unpack);
+function saveSession(sess) {
+  const list = store.get(KEY.sessions, []);
+  const i = list.findIndex(x => x.id === sess.id), p = pack(sess);
+  if (i >= 0) list[i] = p; else list.unshift(p);
+  list.sort((a, b) => b.start - a.start);
+  while (list.length > 60) list.pop();
+  while (!store.set(KEY.sessions, list) && list.length > 3) list.pop();
+}
+const deleteSession = id => store.set(KEY.sessions, store.get(KEY.sessions, []).filter(x => x.id !== id));
+
+/* ---------------- áudio do alarme ---------------- */
+const PENTA = [261.63, 293.66, 329.63, 392.0, 440.0, 523.25, 587.33, 659.25, 783.99];
+const ARP = [0, 2, 4, 5, 7, 5, 4, 2, 1, 3, 5, 6, 8, 6, 5, 3];
+function scheduleNote(ctx, dest, kind, i, t) {
+  const voice = (f, peak, dec) => {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine'; o.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dec);
+    o.connect(g); g.connect(dest); o.start(t); o.stop(t + dec + 0.05);
+  };
+  if (kind === 'sinos') {
+    const f = i % 2 ? 587.33 : 392.0;
+    [[1, 1, 3.2], [2.01, .5, 2.2], [2.76, .35, 1.6], [4.07, .2, 1.1], [5.4, .12, .7]].forEach(([r, gn, d]) => voice(f * r, .2 * gn, d));
+  } else {
+    const f = PENTA[ARP[i % 16]];
+    [[1, 1], [2, .28], [3, .08]].forEach(([r, gn]) => voice(f * r, .22 * gn, 1.5));
+  }
+}
+function wavBlob(data, sr) {
+  const n = data.length, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  w(36, 'data'); v.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) { const s = Math.max(-1, Math.min(1, data[i])); v.setInt16(44 + i * 2, s * 0x7fff, true); }
+  return new Blob([buf], { type: 'audio/wav' });
+}
+const renderCtx = ctx => new Promise(res => { ctx.oncomplete = e => res(e.renderedBuffer); const p = ctx.startRendering(); if (p && p.then) p.then(res); });
+async function renderAlarm(kind) {
+  const Off = window.OfflineAudioContext || window.webkitOfflineAudioContext, sr = 22050;
+  const mk = async (sec, rise) => {
+    const ctx = new Off(1, Math.round(sr * sec), sr), m = ctx.createGain();
+    if (rise) { m.gain.setValueAtTime(0.04, 0); m.gain.exponentialRampToValueAtTime(1, sec * 0.92); } else m.gain.value = 1;
+    m.connect(ctx.destination);
+    const step = kind === 'sinos' ? 2.4 : 0.6;
+    let i = 0;
+    for (let t = 0.05; t < sec - 0.3; t += step) scheduleNote(ctx, m, kind, i++, t);
+    const b = await renderCtx(ctx);
+    return wavBlob(b.getChannelData(0), sr);
+  };
+  return { rise: await mk(60, true), loop: await mk(9.6, false) };
+}
+const AudioOut = {
+  ctx: null, a: null, b: null, urls: {}, silent: null, playing: false, timer: null, master: null,
+  unlock() { // chamado de forma síncrona dentro do toque
+    try { if (!this.ctx) { const AC = window.AudioContext || window.webkitAudioContext; this.ctx = new AC(); } this.ctx.resume(); } catch (e) {}
+    if (!this.silent) this.silent = URL.createObjectURL(wavBlob(new Float32Array(2205), 22050));
+    ['a', 'b'].forEach(k => {
+      if (!this[k]) { const el = new Audio(); el.setAttribute('playsinline', ''); el.preload = 'auto'; this[k] = el; }
+      const el = this[k]; el.src = this.silent; el.muted = true;
+      const p = el.play(); if (p && p.then) p.then(() => { el.pause(); el.muted = false; }).catch(() => { el.muted = false; });
+    });
+  },
+  async prepare(kind) {
+    if (this.urls[kind]) return this.urls[kind];
+    const r = await renderAlarm(kind);
+    this.urls[kind] = { rise: URL.createObjectURL(r.rise), loop: URL.createObjectURL(r.loop) };
+    return this.urls[kind];
+  },
+  async play(kind) {
+    this.playing = true;
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+    let u = null; try { u = await this.prepare(kind); } catch (e) {}
+    if (u && this.a && this.playing) {
+      const a = this.a, b = this.b;
+      a.loop = false; a.muted = false; a.src = u.rise;
+      a.onended = () => { if (!this.playing) return; b.muted = false; b.src = u.loop; b.loop = true; b.play().catch(() => this.synth(kind)); };
+      try { await a.play(); return; } catch (e) {}
+    }
+    if (this.playing) this.synth(kind);
+  },
+  synth(kind, seconds) {
+    const ctx = this.ctx; if (!ctx) return;
+    try { ctx.resume(); } catch (e) {}
+    const m = ctx.createGain(), t0 = ctx.currentTime;
+    if (seconds) m.gain.value = .6; else { m.gain.setValueAtTime(.05, t0); m.gain.linearRampToValueAtTime(.9, t0 + 60); }
+    m.connect(ctx.destination); this.master = m;
+    let t = t0 + .08, i = 0; const step = kind === 'sinos' ? 2.4 : 0.6, end = seconds ? t0 + seconds : Infinity;
+    const sched = () => { while (t < ctx.currentTime + 2.5 && t < end) { scheduleNote(ctx, m, kind, i++, t); t += step; } };
+    sched(); clearInterval(this.timer); this.timer = setInterval(sched, 800);
+    if (seconds) setTimeout(() => { clearInterval(this.timer); }, seconds * 1000);
+  },
+  preview(kind) { this.stop(); this.unlock(); this.synth(kind, 5); },
+  stop() {
+    this.playing = false;
+    [this.a, this.b].forEach(el => { if (el) { el.onended = null; el.pause(); } });
+    clearInterval(this.timer); this.timer = null;
+    if (this.master) { try { this.master.disconnect(); } catch (e) {} this.master = null; }
+  }
+};
+const Vib = {
+  t: null,
+  start() { if (!navigator.vibrate) return; const go = () => navigator.vibrate([500, 250, 500]); go(); this.t = setInterval(go, 2600); },
+  stop() { clearInterval(this.t); this.t = null; if (navigator.vibrate) navigator.vibrate(0); }
+};
+
+/* ---------------- sensores ---------------- */
+const Motion = {
+  on: false, ema: null, lastT: 0, peak: 0, sq: 0, n: 0, hist: [], floor: 0.03, recent: 0, events: 0,
+  handle(e) {
+    const a = e.accelerationIncludingGravity;
+    if (!a || a.x == null) return;
+    const t = e.timeStamp || performance.now(), v = [a.x, a.y, a.z];
+    if (!this.ema) { this.ema = v.slice(); this.lastT = t; return; }
+    const dt = Math.min(0.2, Math.max(0.005, (t - this.lastT) / 1000)); this.lastT = t;
+    const al = 1 - Math.exp(-dt / 0.6);
+    let s = 0;
+    for (let i = 0; i < 3; i++) { const hp = v[i] - this.ema[i]; this.ema[i] += al * hp; s += hp * hp; }
+    const mag = Math.sqrt(s);
+    if (mag > this.peak) this.peak = mag;
+    if (mag > this.recent) this.recent = mag;
+    this.sq += mag * mag; this.n++; this.events++;
+  },
+  request() {
+    if (typeof DeviceMotionEvent === 'undefined') return Promise.resolve('unsupported');
+    if (typeof DeviceMotionEvent.requestPermission === 'function')
+      return DeviceMotionEvent.requestPermission().then(r => r === 'granted' ? 'granted' : 'denied').catch(() => 'denied');
+    return Promise.resolve('granted');
+  },
+  start() { if (this.on) return; this.on = true; this.ema = null; this.h = this.handle.bind(this); window.addEventListener('devicemotion', this.h); },
+  stop() { if (!this.on) return; this.on = false; window.removeEventListener('devicemotion', this.h); },
+  thr(mul) { return Math.max(0.012, this.floor * mul); },
+  flush(mul) { // resumo de 1 segundo
+    const n = this.n, rms = n ? Math.sqrt(this.sq / n) : 0, peak = this.peak;
+    this.peak = 0; this.sq = 0; this.n = 0;
+    if (n) {
+      this.hist.push(rms); if (this.hist.length > 600) this.hist.shift();
+      if (this.hist.length >= 20) { const s = this.hist.slice().sort((x, y) => x - y); this.floor = s[Math.floor(s.length * 0.3)]; }
+    }
+    const thr = this.thr(mul);
+    let I = n ? (peak - thr) / thr : 0;
+    I = I < 0.15 ? 0 : Math.min(10, I);
+    return { n, I, mv: I >= 0.6 };
+  },
+  peek() { const r = this.recent; this.recent = 0; return r; }
+};
+const Sound = {
+  on: false, stream: null, an: null, buf: null, base: -60, above: false, evStart: 0, events: [], timer: null, db: -90,
+  async start(ctx) {
+    this.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+    const src = ctx.createMediaStreamSource(this.stream);
+    this.an = ctx.createAnalyser(); this.an.fftSize = 2048; src.connect(this.an);
+    this.buf = new Float32Array(this.an.fftSize);
+    this.on = true; this.base = -60; this.events = [];
+    this.timer = setInterval(() => this.tick(), 100);
+  },
+  tick() {
+    this.an.getFloatTimeDomainData(this.buf);
+    let s = 0; for (let i = 0; i < this.buf.length; i++) s += this.buf[i] * this.buf[i];
+    const db = 10 * Math.log10(s / this.buf.length + 1e-12); this.db = db;
+    this.base += (db - this.base) * (db < this.base ? 0.3 : 0.003);
+    const now = Date.now(), up = db > this.base + 12;
+    if (up && !this.above) { this.above = true; this.evStart = now; }
+    else if (!up && this.above) { this.above = false; const d = now - this.evStart; if (d >= 150 && d <= 4000) this.events.push({ t: this.evStart, d }); }
+    while (this.events.length && this.events[0].t < now - 120000) this.events.shift();
+  },
+  stop() {
+    clearInterval(this.timer); this.timer = null;
+    if (this.stream) this.stream.getTracks().forEach(t => t.stop());
+    this.stream = null; this.on = false;
+  },
+  epoch(t0, t1) { // sons isolados × ronco (rítmico)
+    const win = this.events.filter(e => e.t >= t1 - 60000 && e.t < t1);
+    let periodic = false;
+    if (win.length >= 5) {
+      const iv = []; for (let i = 1; i < win.length; i++) iv.push((win[i].t - win[i - 1].t) / 1000);
+      const mean = iv.reduce((a, b) => a + b, 0) / iv.length;
+      const sd = Math.sqrt(iv.reduce((a, b) => a + (b - mean) ** 2, 0) / iv.length);
+      periodic = mean >= 2 && mean <= 7 && sd / mean < 0.35;
+    }
+    const inEp = this.events.filter(e => e.t >= t0 && e.t < t1).length;
+    return { s: periodic ? 0 : Math.min(inEp, 6), snore: periodic };
+  }
+};
+const Wake = {
+  lock: null,
+  async on() { try { if ('wakeLock' in navigator && document.visibilityState === 'visible') { this.lock = await navigator.wakeLock.request('screen'); this.lock.addEventListener('release', () => { this.lock = null; }); } } catch (e) { this.lock = null; } },
+  off() { try { if (this.lock) this.lock.release(); } catch (e) {} this.lock = null; }
+};
+
+/* ---------------- rastreamento ---------------- */
+const Tracker = {
+  sess: null, secs: [], pending: [], timer: null, next: 0, score: null, motionOK: true,
+  begin(sess) {
+    this.sess = sess; this.secs = []; this.pending = []; this.score = null;
+    this.next = sess.start + 30000;
+    clearInterval(this.timer); this.timer = setInterval(() => this.tick(), 1000);
+  },
+  tick() {
+    const now = Date.now(), s = this.sess; if (!s) return;
+    const sec = Motion.on ? Motion.flush(SENS[s.mattress] || SENS.medio) : { n: 0, I: 0, mv: false };
+    sec.t = now; this.secs.push(sec); if (this.secs.length > 900) this.secs.shift();
+    this.pending.push(sec);
+    while (now >= this.next) {
+      const t1 = this.next, t0 = t1 - 30000;
+      const got = this.pending.filter(x => x.t > t0 && x.t <= t1);
+      this.pending = this.pending.filter(x => x.t > t1);
+      let e;
+      if (got.length < 10) e = { a: 0, m: 0, s: 0, snore: false, gap: true };
+      else {
+        const snd = Sound.on ? Sound.epoch(t0, t1) : { s: 0, snore: false };
+        e = { a: Math.round(got.reduce((a, x) => a + x.I, 0) * 10) / 10, m: got.filter(x => x.mv).length, s: snd.s, snore: snd.snore };
+      }
+      s.epochs.push(e);
+      this.next += 30000;
+      this.score = Core.score(s.epochs, { mode: s.mode, live: true });
+      store.set(KEY.active, pack(s));
+    }
+    this.motionOK = !Motion.on ? false : this.secs.slice(-6).some(x => x.n > 0);
+    Alarm.check(now);
+    UI.sleepTick(now);
+  },
+  end() { clearInterval(this.timer); this.timer = null; Motion.stop(); Sound.stop(); Wake.off(); }
+};
+
+/* ---------------- alarme ---------------- */
+const REASON = {
+  move: 'Movimento dentro da janela: sinal de sono leve ou de virada de ciclo.',
+  light: 'Você já estava em sono leve quando a janela abriu.',
+  limit: 'Horário limite. Não houve movimento na janela, então você pode ter acordado de sono profundo ou REM.',
+  nap: 'Fim do cochilo, contado a partir de quando você pegou no sono.',
+  cap: 'Teto do cochilo: não detectei início de sono a tempo.',
+  snooze: 'Fim da soneca.',
+  manual: 'Encerrado por você.',
+  interrupted: 'O app foi fechado antes do despertar.'
+};
+const Alarm = {
+  ringing: false,
+  check(now) {
+    const s = Tracker.sess; if (!s || this.ringing) return;
+    if (s.snoozeUntil) { if (now >= s.snoozeUntil) { s.snoozeUntil = null; this.fire('snooze'); } return; }
+    if (s.alarm) return;
+    const recent = Tracker.secs.filter(x => x.t > now - 20000);
+    const moving = recent.filter(x => x.mv).length >= 2 || recent.reduce((a, x) => a + x.I, 0) >= 2.5;
+    const slept = Tracker.score && Tracker.score.onset >= 0; // movimento só vale depois de você ter dormido
+    if (s.mode === 'night') {
+      if (now >= s.wakeBy) return this.fire('limit');
+      if (slept && now >= s.wakeBy - s.windowMin * 60000) {
+        if (moving) return this.fire('move');
+        if (!s._winChecked) { s._winChecked = true; if (s.epochs.slice(-4).some(Core.isMove)) return this.fire('light'); }
+      }
+    } else {
+      const sc = Tracker.score;
+      if (!s.onsetAt && sc && sc.onset >= 0) s.onsetAt = s.start + sc.onset * 30000;
+      const dur = s.napMin * 60000;
+      if (s.onsetAt) {
+        const target = s.onsetAt + dur;
+        if (now >= target) return this.fire('nap');
+        if (s.napMin >= 90 && now >= target - 15 * 60000 && moving) return this.fire('move');
+      }
+      if (now >= s.start + dur + 25 * 60000) return this.fire('cap');
+    }
+  },
+  fire(reason) {
+    const s = Tracker.sess; if (!s) return;
+    this.ringing = true;
+    if (!s.alarm) s.alarm = { at: Date.now(), reason, stage: Tracker.score ? Tracker.score.stage[Tracker.score.stage.length - 1] : null };
+    s.lastReason = reason;
+    Sound.stop(); // libera o microfone antes de tocar (no iPhone o áudio sai baixo com o mic aberto)
+    AudioOut.play(s.sound); Vib.start();
+    UI.showAlarm(reason);
+  },
+  silence() { this.ringing = false; AudioOut.stop(); Vib.stop(); }
+};
+
+async function startSession(mode) {
+  AudioOut.unlock();                 // precisa ser síncrono, dentro do toque
+  const permP = Motion.request();    // idem (iPhone)
+  try { const fs = document.documentElement.requestFullscreen; if (fs) fs.call(document.documentElement).catch(() => {}); } catch (e) {}
+  const perm = await permP;
+  let mic = false;
+  if (settings.mic && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    try { await Sound.start(AudioOut.ctx); mic = true; } catch (e) { mic = false; }
+  }
+  if (perm === 'granted') Motion.start();
+  if (perm !== 'granted' && !mic) {
+    toast('Sem acesso ao acelerômetro nem ao microfone. Libere os dois nas permissões do navegador e tente de novo.');
+    exitFs(); return;
+  }
+  const now = Date.now();
+  const s = { id: 's' + now, mode, start: now, epochs: [], sound: settings.sound, mattress: settings.mattress, sensors: { motion: perm === 'granted', mic } };
+  if (mode === 'night') { s.wakeBy = nextAt(settings.wakeBy); s.windowMin = settings.windowMin; }
+  else s.napMin = settings.napMin;
+  Alarm.ringing = false;
+  Tracker.begin(s);
+  Wake.on();
+  AudioOut.prepare(settings.sound).catch(() => {});
+  UI.showSleep(s);
+  setTimeout(() => { if (Motion.on && Motion.events === 0) toast('O acelerômetro não está enviando dados neste aparelho. O sono será estimado só pelo som.'); }, 4000);
+}
+function finish(endReason) {
+  const s = Tracker.sess; if (!s) return;
+  Alarm.silence(); Tracker.end(); exitFs();
+  const now = Date.now();
+  if (!s.alarm) s.alarm = { at: now, reason: endReason || 'manual' };
+  // sem soneca, descarta o que veio depois do alarme (é você acordando, não dormindo)
+  if (!s.snoozes && s.alarm.reason !== 'manual') s.epochs = s.epochs.slice(0, Math.floor((s.alarm.at - s.start) / 30000));
+  s.end = s.start + Math.max(1, s.epochs.length) * 30000;
+  Tracker.sess = null;
+  saveSession(s); store.del(KEY.active);
+  UI.hide('#sleep'); UI.hide('#alarm');
+  UI.showKSS(s);
+}
+function exitFs() { try { if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {}); } catch (e) {} }
+function nextAt(hhmm) {
+  const [h, m] = hhmm.split(':').map(Number), d = new Date();
+  d.setHours(h, m, 0, 0);
+  if (d.getTime() <= Date.now() + 10 * 60000) d.setDate(d.getDate() + 1);
+  return d.getTime();
+}
+
+/* ---------------- hipnograma ---------------- */
+const ROW = { W: 0, R: 1, L: 2, D: 3 };
+const STAGE_NAME = { W: 'Acordado', R: 'REM provável', L: 'Leve (N1–N2)', D: 'Profundo provável (N3)' };
+const STAGE_AT = { W: 'acordado', R: 'em REM provável', L: 'em sono leve', D: 'em sono profundo provável' };
+function rrect(c, x, y, w, h, r) { if (c.roundRect) { c.beginPath(); c.roundRect(x, y, w, h, Math.min(r, w / 2, h / 2)); } else { c.beginPath(); c.rect(x, y, w, h); } }
+function drawHypno(cv, sess, sc, mini) {
+  const dpr = Math.min(3, window.devicePixelRatio || 1), W = cv.clientWidth, H = cv.clientHeight;
+  if (!W || !H) return;
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
+  const ep = sess.epochs, n = ep.length; if (!n) return;
+  const L = mini ? 0 : 66, R = mini ? 0 : 4, top = mini ? 2 : 6, axis = mini ? 0 : 20, actH = mini ? 0 : (sc.hasHr ? 40 : 30), gap = mini ? 0 : 10;
+  const plotH = H - top - axis - actH - gap, rowH = plotH / 4;
+  const x = i => L + (W - L - R) * i / n;
+  const col = { W: css('--st-w'), R: css('--st-r'), L: css('--st-l'), D: css('--st-d'), '?': css('--st-gap') };
+  if (!mini) {
+    c.font = '12px ' + css('--f-body'); c.textBaseline = 'middle';
+    ['Acordado', 'REM', 'Leve', 'Profundo'].forEach((t, k) => {
+      const y = top + rowH * k + rowH / 2;
+      c.fillStyle = css('--muted'); c.fillText(t, 0, y);
+      c.strokeStyle = css('--line'); c.lineWidth = 1; c.beginPath(); c.moveTo(L, Math.round(y) + .5); c.lineTo(W - R, Math.round(y) + .5); c.stroke();
+    });
+    if (sess.mode === 'night' && sess.wakeBy) {
+      const i0 = (sess.wakeBy - sess.windowMin * 60000 - sess.start) / 30000, i1 = (sess.wakeBy - sess.start) / 30000;
+      const xa = x(Math.max(0, i0)), xb = x(Math.min(n, i1));
+      if (xb > xa) { c.fillStyle = 'rgba(255,157,92,.12)'; c.fillRect(xa, top, xb - xa, plotH); }
+    }
+  }
+  c.strokeStyle = css('--faint'); c.lineWidth = 1; c.beginPath();
+  for (let i = 0; i < n; i++) {
+    const s = sc.stage[i]; if (s === '?') continue;
+    const y = top + rowH * ROW[s] + rowH / 2;
+    if (i === 0 || sc.stage[i - 1] === '?') c.moveTo(x(i), y); else c.lineTo(x(i), y);
+    c.lineTo(x(i + 1), y);
+  }
+  c.stroke();
+  for (let i = 0; i < n;) {
+    const s = sc.stage[i]; let j = i; while (j < n && sc.stage[j] === s) j++;
+    const w = Math.max(1.5, x(j) - x(i));
+    if (s === '?') { c.fillStyle = col['?']; c.fillRect(x(i), top, w, plotH); }
+    else { c.fillStyle = col[s]; rrect(c, x(i), top + rowH * ROW[s] + rowH * .18, w, rowH * .64, mini ? 1 : 3); c.fill(); }
+    i = j;
+  }
+  if (mini) return;
+  const ay = top + plotH + gap;
+  let mx = 8; for (const e of ep) mx = Math.max(mx, Core.act(e));
+  c.fillStyle = css('--faint');
+  for (let k = 0; k < n; k++) {
+    const a = Core.act(ep[k]); if (a <= .2) continue;
+    const h = Math.max(1, actH * Math.sqrt(a / mx));
+    c.fillRect(x(k), ay + actH - h, Math.max(1, x(k + 1) - x(k) - .3), h);
+  }
+  if (sc.hasHr) {
+    const hv = ep.map(e => (e.hr > 0 && !e.gap) ? e.hr : 0), vals = hv.filter(Boolean);
+    let lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+    if (hi - lo < 10) { const mid = (hi + lo) / 2; lo = mid - 5; hi = mid + 5; }
+    c.strokeStyle = css('--st-r'); c.lineWidth = 1.4; c.beginPath();
+    let pen = false;
+    for (let k = 0; k < n; k++) {
+      let s = 0, cn = 0;
+      for (let j = k - 1; j <= k + 1; j++) if (j >= 0 && j < n && hv[j]) { s += hv[j]; cn++; }
+      if (!cn) { pen = false; continue; }
+      const y = ay + actH - ((s / cn - lo) / (hi - lo)) * actH, xx = x(k + .5);
+      if (!pen) { c.moveTo(xx, y); pen = true; } else c.lineTo(xx, y);
+    }
+    c.stroke();
+    c.fillStyle = css('--muted'); c.font = '11px ' + css('--f-mono'); c.textBaseline = 'middle';
+    c.fillText('FC bpm', 0, ay + 7);
+    c.fillText(`${Math.round(lo)}–${Math.round(hi)}`, 0, ay + actH - 6);
+  }
+  const t0 = sess.start, t1 = sess.start + n * 30000, span = t1 - t0;
+  const stepMin = span > 5 * 3600000 ? 60 : span > 2 * 3600000 ? 30 : span > 40 * 60000 ? 10 : 5;
+  const d = new Date(t0); d.setSeconds(0, 0); d.setMinutes(Math.ceil(d.getMinutes() / stepMin) * stepMin);
+  c.font = '11px ' + css('--f-mono'); c.textBaseline = 'alphabetic'; c.fillStyle = css('--muted');
+  let lastX = -99;
+  for (let h = d.getTime(); h <= t1; h += stepMin * 60000) {
+    const xi = x((h - t0) / 30000);
+    c.fillRect(Math.round(xi), top + plotH, 1, 4);
+    const lx = Math.min(W - R - 34, Math.max(L, xi - 17));
+    if (lx - lastX > 40) { c.fillText(hm(h), lx, H - 3); lastX = lx; }
+  }
+  if (sess.alarm && !sess.example) {
+    const xi = x(Math.min(n, (sess.alarm.at - sess.start) / 30000));
+    c.strokeStyle = css('--ember'); c.lineWidth = 2; c.beginPath(); c.moveTo(xi, top); c.lineTo(xi, top + plotH); c.stroke();
+  } else if (sess.example) {
+    const xi = x(n); c.strokeStyle = css('--ember'); c.lineWidth = 2; c.beginPath(); c.moveTo(xi - 1, top); c.lineTo(xi - 1, top + plotH); c.stroke();
+  }
+}
+
+/* ---------------- interface ---------------- */
+let toastT = null;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 5200); }
+
+const UI = {
+  show(sel) { $(sel).hidden = false; document.body.style.overflow = 'hidden'; },
+  hide(sel) { $(sel).hidden = true; if ($$('.overlay').every(o => o.hidden)) document.body.style.overflow = ''; },
+  awakeT: null,
+  showSleep(s) {
+    $('#slMode').textContent = s.mode === 'night' ? 'Noite' : `Cochilo · ${s.napMin} min`;
+    $('#slSensors').textContent = [s.sensors.motion ? 'acelerômetro' : null, s.sensors.mic ? 'microfone' : null].filter(Boolean).join(' + ');
+    this.show('#sleep'); this.wake();
+    this.sleepTick(Date.now());
+  },
+  wake() { const el = $('#sleep'); el.classList.add('awake'); clearTimeout(this.awakeT); this.awakeT = setTimeout(() => el.classList.remove('awake'), 8000); },
+  sleepTick(now) {
+    const s = Tracker.sess; if (!s || $('#sleep').hidden) return;
+    $('#slClock').textContent = hm(now);
+    let line;
+    if (s.mode === 'night') {
+      const ws = s.wakeBy - s.windowMin * 60000;
+      line = now < ws ? `Janela ${hm(ws)}–${hm(s.wakeBy)}. Até lá, só observo.` : `Janela aberta até ${hm(s.wakeBy)}. Espero o próximo movimento.`;
+    } else if (!s.onsetAt) {
+      line = `Esperando você pegar no sono · deitado há ${durTxt((now - s.start) / 60000)}. Fique parado.`;
+    } else {
+      line = `Dormindo há ${durTxt((now - s.onsetAt) / 60000)} · acordo às ${hm(s.onsetAt + s.napMin * 60000)}.`;
+    }
+    $('#slLine').textContent = line;
+    if (now % 5000 < 1000 || !$('#slStatus').textContent) {
+      const sc = Tracker.score, st = sc && sc.stage.length ? sc.stage[sc.stage.length - 1] : null;
+      const moves10 = s.epochs.slice(-20).filter(Core.isMove).length;
+      const parts = [st ? `agora: ${STAGE_NAME[st].toLowerCase()}` : 'calibrando', `${moves10} movimento${moves10 === 1 ? '' : 's'} em 10 min`];
+      if (s.sensors.motion && !Tracker.motionOK) parts.push('<span class="warn">acelerômetro sem sinal</span>');
+      if (!Wake.lock && 'wakeLock' in navigator) parts.push('<span class="warn">tela pode apagar</span>');
+      if (!('wakeLock' in navigator)) parts.push('<span class="warn">desligue o bloqueio automático da tela</span>');
+      $('#slStatus').innerHTML = parts.join(' · ');
+    }
+  },
+  showAlarm(reason) {
+    const s = Tracker.sess;
+    $('#alClock').textContent = hm(Date.now());
+    let txt = REASON[reason] || '';
+    if (s && s.mode === 'night' && (reason === 'move' || reason === 'light')) txt += ` ${durTxt((s.wakeBy - Date.now()) / 60000)} antes do limite.`;
+    $('#alReason').textContent = txt;
+    $('#alEyebrow').textContent = reason === 'nap' || reason === 'cap' ? 'Fim do cochilo' : 'Bom dia';
+    const sun = $('#alarm .sun'); sun.style.animation = 'none'; void sun.offsetWidth; sun.style.animation = '';
+    this.show('#alarm');
+  },
+  showKSS(s) {
+    const labels = ['Extremamente alerta', 'Muito alerta', 'Alerta', 'Razoavelmente alerta', 'Nem alerta nem sonolento', 'Alguns sinais de sono', 'Sonolento, sem esforço para ficar acordado', 'Sonolento, algum esforço para ficar acordado', 'Muito sonolento, lutando contra o sono'];
+    $('#kssList').innerHTML = labels.map((l, i) => `<button data-v="${i + 1}"><b>${i + 1}</b><span>${l}</span></button>`).join('');
+    $$('#kssList button').forEach(b => b.onclick = () => { s.kss = +b.dataset.v; saveSession(s); this.hide('#kss'); this.showReport(s); refresh(); });
+    $('#kssSkip').onclick = () => { this.hide('#kss'); this.showReport(s); refresh(); };
+    this.show('#kss');
+  },
+  showReport(s) {
+    const sc = Core.score(s.epochs, { mode: s.mode }), sum = Core.summarize(s, sc);
+    const tot = Math.max(1, sum.W + sum.L + sum.D + sum.R);
+    const title = s.mode === 'night'
+      ? `Noite de ${dateTxt(s.start)}`
+      : `Cochilo de ${dateTxt(s.start)}, ${hm(s.start)}`;
+    const wakeStage = sum.endStage ? STAGE_AT[sum.endStage] : null;
+    const alarmAt = s.alarm ? s.alarm.at : s.end;
+    let wakeLine = `${hm(alarmAt)} · ${REASON[s.alarm ? s.alarm.reason : 'manual'] || ''}`;
+    if (s.mode === 'night' && s.wakeBy && s.alarm && (s.alarm.reason === 'move' || s.alarm.reason === 'light')) wakeLine += ` ${durTxt((s.wakeBy - s.alarm.at) / 60000)} antes do limite.`;
+    const kssTxt = s.kss ? `Sonolência ao acordar (KSS): <b>${s.kss}</b>/9` : 'Sonolência ao acordar não registrada.';
+    const watch = s.source === 'watch';
+    const sixth = sc.hasHr
+      ? `<div><dt>FC mín.</dt><dd>${sum.hrMin ? Math.round(sum.hrMin) + ' bpm' : '—'}</dd></div>`
+      : `<div><dt>Ronco</dt><dd>${s.sensors && s.sensors.mic === false ? '—' : durShort(sum.snore)}</dd></div>`;
+    const legend = ['W', 'L', 'D', 'R'].map(k => `<span><i style="background:var(--st-${k.toLowerCase()})"></i>${STAGE_NAME[k]}<em>${durShort(sum[k])} · ${Math.round(sum[k] / tot * 100)}%</em></span>`).join('');
+    const stack = ['W', 'L', 'D', 'R'].filter(k => sum[k] > 0).map(k => `<i style="flex:${sum[k]};background:var(--st-${k.toLowerCase()})"></i>`).join('');
+    const cyc = sum.cyclesDone + (sum.lastCycleMin >= 45 ? 1 : 0);
+    $('#reportIn').innerHTML = `
+      <div class="rp-head"><button class="btn-ghost" id="rpBack">← Voltar</button>${s.example ? '<span class="tag ex">Exemplo</span>' : watch ? '<span class="tag">Galaxy Watch</span>' : ''}</div>
+      <p class="eyebrow">${title}</p>
+      <p class="big">${durTxt(sum.tst)} de sono<small>Na cama ${hm(s.start)}–${hm(s.end)} · ${durTxt(sum.inBed)}</small></p>
+      <dl class="stats">
+        <div><dt>Latência</dt><dd>${sum.latency == null ? '—' : durShort(sum.latency)}</dd></div>
+        <div><dt>Eficiência</dt><dd>${Math.round(sum.eff * 100)}%</dd></div>
+        <div><dt>Ciclos</dt><dd>${s.mode === 'night' ? '≈ ' + cyc : '—'}</dd></div>
+        <div><dt>Acordado*</dt><dd>${durShort(sum.waso)}</dd></div>
+        ${sixth}
+        <div><dt>Movimentos</dt><dd>${sum.moves}</dd></div>
+      </dl>
+      <canvas class="hypno" id="rpHypno" aria-label="Hipnograma estimado da sessão"></canvas>
+      <div class="stack">${stack}</div>
+      <div class="legend">${legend}</div>
+      <div class="wake-box">
+        <p class="eyebrow">Despertar</p>
+        <p>${wakeLine}</p>
+        <p class="dim">${wakeStage ? `Logo antes do despertar: ${wakeStage}.` : ''} ${kssTxt}</p>
+      </div>
+      ${sum.gap > 1 ? `<p class="note" style="color:var(--danger)">${durTxt(sum.gap)} sem dados: a tela apagou ou o app saiu da frente.</p>` : ''}
+      <p class="note">*Acordado depois de pegar no sono. ${sc.hasHr
+        ? 'Estágios estimados por movimento no pulso e frequência cardíaca (linha lilás). A FC ajuda a separar profundo de REM, mas continua sendo estimativa e não substitui polissonografia.'
+        : 'Estágios estimados por movimento e som. O celular separa bem dormindo × acordado; profundo e REM são inferidos pelo padrão de ciclo e não substituem polissonografia.'}</p>
+      <div class="actions">
+        ${s.example ? '' : '<button class="btn-ghost" id="rpCsv">Exportar CSV</button><button class="btn-ghost" id="rpDel" style="color:var(--danger)">Apagar</button>'}
+      </div>`;
+    this.show('#report');
+    $('#report').scrollTop = 0;
+    requestAnimationFrame(() => drawHypno($('#rpHypno'), s, sc, false));
+    $('#rpBack').onclick = () => this.hide('#report');
+    const csv = $('#rpCsv'); if (csv) csv.onclick = () => exportCSV(s, sc);
+    const del = $('#rpDel');
+    if (del) {
+      let armed = false, t = null;
+      del.onclick = () => {
+        if (!armed) { armed = true; del.textContent = 'Toque de novo para apagar'; t = setTimeout(() => { armed = false; del.textContent = 'Apagar'; }, 3500); return; }
+        clearTimeout(t); deleteSession(s.id); this.hide('#report'); refresh(); toast('Sessão apagada.');
+      };
+    }
+    UI.current = { s, sc };
+  }
+};
+function exportCSV(s, sc) {
+  const rows = [['inicio_epoca', 'atividade', 'seg_movimento', 'sons_isolados', 'ronco', 'estagio_estimado']];
+  s.epochs.forEach((e, i) => rows.push([new Date(s.start + i * 30000).toISOString(), e.a, e.m, e.s, e.snore ? 1 : 0, sc.stage[i]]));
+  const blob = new Blob([rows.map(r => r.join(',')).join('\n')], { type: 'text/csv' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `mare-${new Date(s.start).toISOString().slice(0, 10)}-${s.mode}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* ---------------- telas da página ---------------- */
+const SAMPLE = Core.sampleNight(new Date());
+function nightCard(s) {
+  const sc = Core.score(s.epochs, { mode: s.mode }), sum = Core.summarize(s, sc);
+  const b = document.createElement('button');
+  b.className = 'card night-card';
+  b.innerHTML = `
+    <div class="night-meta"><span><b>${s.mode === 'night' ? dateTxt(s.start) : 'Cochilo · ' + dateTxt(s.start)}</b> <span class="dim">${hm(s.start)}–${hm(s.end)}</span></span>${s.example ? '<span class="tag ex">Exemplo</span>' : `<span class="tag">${s.source === 'watch' ? 'relógio · ' : ''}${s.mode === 'night' ? 'noite' : s.napMin + ' min'}</span>`}</div>
+    <canvas aria-hidden="true"></canvas>
+    <div class="night-meta dim"><span>${durTxt(sum.tst)} de sono${sum.endStage ? ' · acordou ' + STAGE_AT[sum.endStage] : ''}</span><span>${s.kss ? 'KSS ' + s.kss : ''}</span></div>`;
+  b.onclick = () => UI.showReport(s);
+  requestAnimationFrame(() => drawHypno($('canvas', b), s, sc, true));
+  return b;
+}
+function renderNight() {
+  const wb = nextAt(settings.wakeBy), now = Date.now(), ws = Math.max(now, wb - settings.windowMin * 60000);
+  $('#nightLine').innerHTML = `Vou te acordar entre <b>${hm(ws)}</b> e <b>${hm(wb)}</b>, no primeiro movimento de sono leve. Sem movimento, toco às ${hm(wb)}.`;
+  const mins = (wb - now) / 60000;
+  $('#nightSpan').textContent = `Daqui até ${hm(wb)}: ${durTxt(mins)} · ≈ ${num(mins / 90)} ciclos de 90 min`;
+}
+function renderNap() {
+  const now = Date.now(), m = settings.napMin;
+  $('#napLine').innerHTML = `Se você pegar no sono em uns 5 min, acordo por volta de <b>${hm(now + (5 + m) * 60000)}</b>. No máximo às ${hm(now + (m + 25) * 60000)}.`;
+}
+function renderNights() {
+  const list = loadSessions(), box = $('#nights'); box.innerHTML = '';
+  if (!list.length) {
+    box.appendChild(nightCard(SAMPLE));
+    $('#insight').textContent = 'Suas noites aparecem aqui. Enquanto isso, toque no exemplo para ver um relatório completo.';
+  } else {
+    list.forEach(s => box.appendChild(nightCard(s)));
+    const night = list.filter(s => s.mode === 'night' && s.kss && s.alarm);
+    const byMove = night.filter(s => s.alarm.reason === 'move' || s.alarm.reason === 'light').map(s => s.kss);
+    const byLimit = night.filter(s => s.alarm.reason === 'limit').map(s => s.kss);
+    const avg = a => num(a.reduce((x, y) => x + y, 0) / a.length);
+    $('#insight').innerHTML = byMove.length >= 2 && byLimit.length >= 2
+      ? `KSS médio ao acordar · pelo movimento: <b>${avg(byMove)}</b> (${byMove.length} noites) · pelo horário limite: <b>${avg(byLimit)}</b> (${byLimit.length} noites). Quanto menor, mais desperto.`
+      : 'Registre a sonolência (KSS) ao acordar por algumas noites. Com 2 despertares por movimento e 2 pelo limite, comparo os dois aqui.';
+  }
+  const last = $('#lastNight'); last.innerHTML = '';
+  last.appendChild(nightCard(list.find(s => s.mode === 'night') || SAMPLE));
+}
+function refresh() { renderNight(); renderNap(); renderNights(); }
+
+function bindPressed(container, key, after) {
+  const btns = $$('[data-v]', container);
+  const sync = () => btns.forEach(b => b.setAttribute('aria-pressed', String(String(settings[key]) === b.dataset.v)));
+  btns.forEach(b => b.onclick = () => { settings[key] = isNaN(+b.dataset.v) ? b.dataset.v : +b.dataset.v; saveSettings(); sync(); after && after(); });
+  sync();
+}
+
+/* abas */
+const TABS = ['noite', 'cochilo', 'noites', 'ciencia'];
+function selectTab(name) {
+  TABS.forEach(t => { $('#tab-' + t).setAttribute('aria-selected', String(t === name)); $('#p-' + t).hidden = t !== name; });
+  if (name === 'noites') renderNights();
+  if (name === 'ciencia') requestAnimationFrame(() => drawHypno($('#sciHypno'), SAMPLE, Core.score(SAMPLE.epochs, { mode: 'night' }), false));
+  if (name === 'noite') renderNights();
+  try { history.replaceState(null, '', '#' + name); } catch (e) {}
+}
+TABS.forEach(t => $('#tab-' + t).onclick = () => selectTab(t));
+
+/* controles */
+const wakeIn = $('#wakeBy');
+wakeIn.value = settings.wakeBy;
+wakeIn.addEventListener('change', () => { if (wakeIn.value) { settings.wakeBy = wakeIn.value; saveSettings(); renderNight(); } });
+wakeIn.addEventListener('input', () => { if (wakeIn.value) { settings.wakeBy = wakeIn.value; saveSettings(); renderNight(); } });
+bindPressed($('#winChips'), 'windowMin', renderNight);
+bindPressed($('#matSeg'), 'mattress');
+bindPressed($('#sndSeg'), 'sound');
+bindPressed($('#napList'), 'napMin', renderNap);
+const micSw = $('#micSw');
+micSw.setAttribute('aria-checked', String(settings.mic));
+micSw.onclick = () => { settings.mic = !settings.mic; micSw.setAttribute('aria-checked', String(settings.mic)); saveSettings(); };
+$('#preview').onclick = () => AudioOut.preview(settings.sound);
+$('#startNight').onclick = () => startSession('night');
+$('#startNap').onclick = () => startSession('nap');
+
+/* tela de sono */
+$('#sleep').addEventListener('pointerdown', e => { if (!e.target.closest('#holdStop')) UI.wake(); });
+const hold = $('#holdStop'); let holdT = null;
+hold.addEventListener('pointerdown', e => { e.preventDefault(); UI.wake(); hold.classList.add('holding'); holdT = setTimeout(() => { hold.classList.remove('holding'); finish('manual'); }, 1500); });
+['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => hold.addEventListener(ev, () => { hold.classList.remove('holding'); clearTimeout(holdT); }));
+hold.addEventListener('contextmenu', e => e.preventDefault());
+
+/* alarme */
+$('#alStop').onclick = () => finish();
+$('#alSnooze').onclick = () => {
+  const s = Tracker.sess; if (!s) return;
+  Alarm.silence(); s.snoozeUntil = Date.now() + 5 * 60000; s.snoozes = (s.snoozes || 0) + 1;
+  UI.hide('#alarm'); UI.wake();
+  $('#slLine').textContent = `Soneca até ${hm(s.snoozeUntil)}.`;
+};
+
+/* ---------------- Galaxy Watch (Web Bluetooth) ---------------- */
+const Watch = {
+  dev: null, ctrl: null, data: null, info: null, busy: false,
+  ok() { return !!(navigator.bluetooth && navigator.bluetooth.requestDevice) && window.isSecureContext; },
+  connected() { return !!(this.dev && this.dev.gatt && this.dev.gatt.connected && this.ctrl); },
+  async connect() {
+    if (!this.dev) {
+      this.dev = await navigator.bluetooth.requestDevice({ filters: [{ services: [Core.WATCH.SVC] }] });
+      this.dev.addEventListener('gattserverdisconnected', () => { this.ctrl = this.data = null; renderWatch(); });
+    }
+    const srv = await this.dev.gatt.connect();
+    const svc = await srv.getPrimaryService(Core.WATCH.SVC);
+    this.ctrl = await svc.getCharacteristic(Core.WATCH.CTRL);
+    this.data = await svc.getCharacteristic(Core.WATCH.DATA);
+    return this.list();
+  },
+  async ensure() { if (!this.connected()) await this.connect(); },
+  async raw(bytes) {
+    const b = new Uint8Array(bytes);
+    if (this.ctrl.writeValueWithResponse) await this.ctrl.writeValueWithResponse(b); else await this.ctrl.writeValue(b);
+    const v = await this.data.readValue();
+    return new Uint8Array(v.buffer.slice(v.byteOffset, v.byteOffset + v.byteLength));
+  },
+  async json(bytes) {
+    const j = JSON.parse(new TextDecoder().decode(await this.raw(bytes)) || '{}');
+    if (j.err) throw new Error(j.err);
+    return j;
+  },
+  async list() { this.info = await this.json(Core.cmd.list()); return this.info; },
+  async importNew(progress) {
+    await this.ensure();
+    const j = await this.list();
+    const have = new Set(store.get(KEY.sessions, []).map(x => x.id));
+    const todo = (j.s || []).filter(x => !have.has(x.id)), got = [];
+    for (let q = 0; q < todo.length; q++) {
+      const x = todo[q], meta = await this.json(Core.cmd.meta(x.i));
+      if (meta.id !== x.id || !meta.n) continue;
+      const chunks = Math.ceil(meta.n / Core.WATCH.PER_CHUNK), parts = [];
+      let len = 0;
+      for (let k = 0; k < chunks; k++) {
+        const part = await this.raw(Core.cmd.chunk(x.i, k));
+        parts.push(part); len += part.length;
+        if (progress) progress(q + 1, todo.length, k + 1, chunks);
+      }
+      const all = new Uint8Array(len); let off = 0;
+      for (const part of parts) { all.set(part, off); off += part.length; }
+      const sess = Core.fromWatch(meta, Core.decodeWatch(all));
+      saveSession(sess); got.push(sess);
+    }
+    await this.list().catch(() => {});
+    return got;
+  },
+  async startNight(wakeBy, win) { await this.ensure(); return this.json(Core.cmd.night(wakeBy, win)); },
+  async startNap(min) { await this.ensure(); return this.json(Core.cmd.nap(min)); }
+};
+function renderWatch() {
+  const ok = Watch.ok();
+  $('#wNap').hidden = !ok;
+  $('#wImport2').hidden = !ok;
+  const st = $('#wStatus'), act = $('#wActions'), btn = $('#wConnect');
+  if (!ok) {
+    st.textContent = 'Este navegador não conversa por Bluetooth com o relógio. Abra o Maré no Chrome do Android, pelo endereço https.';
+    btn.hidden = true; act.hidden = true; $('#wNote').hidden = true;
+    return;
+  }
+  if (Watch.connected()) {
+    const i = Watch.info || {}, now = i.now || {};
+    const have = new Set(store.get(KEY.sessions, []).map(x => x.id));
+    const fresh = (i.s || []).filter(x => !have.has(x.id)).length;
+    st.textContent = `Conectado${now.hr ? ` · FC ${now.hr} bpm` : ''}${now.st === 1 ? ' · acompanhando agora' : ''} · ${fresh ? fresh + (fresh === 1 ? ' sessão nova' : ' sessões novas') : 'nada novo para importar'}.`;
+    btn.textContent = 'Atualizar'; act.hidden = false;
+  } else {
+    st.textContent = 'Movimento no pulso e frequência cardíaca. O alarme vibra no seu pulso e o celular pode ficar bloqueado.';
+    btn.textContent = 'Conectar'; act.hidden = true;
+  }
+}
+function watchErr(e) {
+  if (e && (e.name === 'NotFoundError' || e.name === 'AbortError')) return; // você fechou a lista de aparelhos
+  const m = e && e.message ? e.message : '';
+  if (/horário já passou/.test(m)) toast('Esse horário já passou ou está a menos de 5 min. Ajuste o "acordar até".');
+  else toast('Não consegui falar com o relógio. Abra o Maré nele (fica visível por 10 min), confira o Bluetooth e tente de novo.');
+  renderWatch();
+}
+async function watchDo(btn, fn) {
+  if (Watch.busy) return;
+  Watch.busy = true; btn.disabled = true;
+  try { await fn(); } catch (e) { watchErr(e); } finally { Watch.busy = false; btn.disabled = false; renderWatch(); }
+}
+async function watchImport(btn) {
+  await watchDo(btn, async () => {
+    const got = await Watch.importNew((q, of, k, ks) => { $('#wStatus').textContent = `Importando sessão ${q} de ${of} · bloco ${k}/${ks}…`; });
+    refresh();
+    if (!got.length) { toast('Nada novo no relógio.'); return; }
+    got.sort((a, b) => b.start - a.start);
+    const last = got[0];
+    toast(got.length === 1 ? 'Sessão importada do relógio.' : `${got.length} sessões importadas do relógio.`);
+    if (Date.now() - last.end < 3 * 3600000 && !last.kss) UI.showKSS(last); else UI.showReport(last);
+  });
+}
+$('#wConnect').onclick = e => watchDo(e.currentTarget, () => Watch.connect());
+$('#wImport').onclick = e => watchImport(e.currentTarget);
+$('#wImport2').onclick = e => watchImport(e.currentTarget);
+$('#wNight').onclick = e => watchDo(e.currentTarget, async () => {
+  const wb = nextAt(settings.wakeBy);
+  await Watch.startNight(wb, settings.windowMin);
+  toast(`O relógio está acompanhando: janela ${hm(wb - settings.windowMin * 60000)}–${hm(wb)}. Pode bloquear o celular.`);
+});
+$('#wNap').onclick = e => watchDo(e.currentTarget, async () => {
+  await Watch.startNap(settings.napMin);
+  toast(`Cochilo de ${settings.napMin} min começou no relógio, contado a partir de quando você dormir.`);
+});
+renderWatch();
+
+/* teste de sensores */
+const Test = {
+  on: false, t: null, ts: null,
+  async toggle() {
+    if (this.on) return this.stop();
+    AudioOut.unlock();
+    const perm = await Motion.request();
+    if (perm === 'granted') Motion.start();
+    let mic = false;
+    if (settings.mic && navigator.mediaDevices) { try { await Sound.start(AudioOut.ctx); mic = true; } catch (e) {} }
+    if (perm !== 'granted' && !mic) { $('#testLog').textContent = 'Sem permissão para acelerômetro e microfone.'; return; }
+    this.on = true; $('#testBtn').textContent = 'Parar teste';
+    $('#testLog').textContent = `Lendo ${perm === 'granted' ? 'acelerômetro' : ''}${perm === 'granted' && mic ? ' e ' : ''}${mic ? 'microfone' : ''}…`;
+    let movesSeen = 0;
+    this.t = setInterval(() => {
+      const mul = SENS[settings.mattress];
+      $('#mMove').style.width = Math.min(100, Motion.peek() / (Motion.thr(mul) * 5) * 100) + '%';
+      $('#mSound').style.width = Sound.on ? Math.max(0, Math.min(100, (Sound.db - Sound.base) / 30 * 100)) + '%' : '0%';
+    }, 120);
+    this.ts = setInterval(() => {
+      const f = Motion.flush(SENS[settings.mattress]);
+      if (Motion.on && Motion.events === 0) $('#testLog').textContent = 'O acelerômetro não está enviando dados. Em computador isso é normal; teste no celular.';
+      else if (f.mv) { movesSeen++; $('#testLog').textContent = `Movimento detectado (intensidade ${num(f.I)}). Total: ${movesSeen}.`; }
+    }, 1000);
+  },
+  stop() { clearInterval(this.t); clearInterval(this.ts); this.on = false; Motion.stop(); Sound.stop(); $('#testBtn').textContent = 'Iniciar teste'; $('#mMove').style.width = '0'; $('#mSound').style.width = '0'; }
+};
+$('#testBtn').onclick = () => Test.toggle();
+$('#testCard').addEventListener('toggle', () => { if (!$('#testCard').open && Test.on) Test.stop(); });
+
+/* sessão interrompida */
+(function checkActive() {
+  const a = store.get(KEY.active, null); if (!a || !a.epochs || !a.epochs.length) { store.del(KEY.active); return; }
+  const s = unpack(a), b = $('#banner');
+  b.innerHTML = `<span>Uma sessão de ${dateTxt(s.start)}, ${hm(s.start)}, ficou aberta: o app foi fechado antes do despertar.</span><div class="actions"><button class="btn-ghost" id="bnSave">Salvar o que foi medido</button><button class="btn-ghost" id="bnDrop">Descartar</button></div>`;
+  b.hidden = false;
+  $('#bnSave').onclick = () => { s.end = s.start + s.epochs.length * 30000; s.alarm = s.alarm || { at: s.end, reason: 'interrupted' }; saveSession(s); store.del(KEY.active); b.hidden = true; refresh(); UI.showReport(s); };
+  $('#bnDrop').onclick = () => { store.del(KEY.active); b.hidden = true; };
+})();
+
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && Tracker.sess) Wake.on(); });
+window.addEventListener('beforeunload', e => { if (Tracker.sess) { e.preventDefault(); e.returnValue = ''; } });
+let rz = null;
+window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (!$('#report').hidden && UI.current) drawHypno($('#rpHypno'), UI.current.s, UI.current.sc, false); renderNights(); }, 150); });
+setInterval(() => { if (!Tracker.sess) { renderNight(); renderNap(); } }, 30000);
+
+refresh();
+const h = (location.hash || '').slice(1);
+selectTab(TABS.includes(h) ? h : 'noite');
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>
