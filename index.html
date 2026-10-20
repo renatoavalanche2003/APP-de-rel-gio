@@ -23,7 +23,8 @@
   --night:#0b0d14; --panel:#121624; --panel-2:#191e32; --line:#262d46;
   --ink:#ece4d4; --muted:#9c9fb4; --faint:#62677f;
   --ember:#ff9d5c; --on-ember:#1c0f06;
-  --st-w:#f2c66d; --st-r:#b796ff; --st-l:#6198ea; --st-d:#3a5bbd; --st-gap:#2c3147;
+  --st-w:#c98500; --st-r:#9085e9; --st-l:#199e70; --st-d:#3987e5; --st-gap:#2c3147;
+  --good:#0ca30c; --warn:#fab219;
   --danger:#ff7c6e;
   --f-display:"Bricolage Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --f-body:"Atkinson Hyperlegible", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -68,7 +69,7 @@ a{color:var(--ember)}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:14px}
 .row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .row > span{min-width:0;flex:1 1 180px}
-.row > .switch{flex:none}
+.row > .switch, .row > .tag{flex:none}
 .row .lbl{font-weight:700}
 .row .hint{display:block;color:var(--muted);font-size:13px;font-weight:400}
 .seg{display:inline-flex;background:var(--night);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
@@ -175,6 +176,42 @@ details.card[open] summary::after{content:"–"}
 .stack{display:flex;height:12px;border-radius:6px;overflow:hidden;gap:2px}
 .stack i{display:block;height:100%}
 .legend{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;font-size:14px}
+.legend-row{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+.legend .dash{width:16px;height:0;border-top:2px dashed var(--ink);opacity:.6;border-radius:0;background:none!important}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:0}
+.kpis div{background:var(--panel-2);padding:10px 12px;min-width:0}
+.kpis dt{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.kpis dd{margin:3px 0 0;font:500 18px var(--f-display);font-variant-numeric:tabular-nums}
+.chart-wrap{position:relative}
+.chart-wrap canvas{width:100%;height:230px;display:block;touch-action:pan-y;cursor:pointer}
+.chart-wrap.small canvas{height:180px}
+.ctip{position:absolute;top:6px;z-index:4;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;width:178px;box-shadow:0 10px 24px rgba(0,0,0,.45);display:flex;flex-direction:column;gap:3px}
+.ctip b{font-size:14px;margin-bottom:2px}
+.ctip .r{display:flex;align-items:center;gap:8px}
+.ctip .r i{width:9px;height:9px;border-radius:2px;flex:none}
+.ctip .r em{font-style:normal;margin-left:auto;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.ctip button{margin-top:6px;border:0;background:none;color:var(--ember);padding:0;text-align:left;font-size:13px;text-decoration:underline;text-underline-offset:3px}
+.chips-scroll{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.chips-scroll::-webkit-scrollbar{display:none}
+.chips-scroll .chip{flex:none;padding:7px 13px;font-size:13px}
+details.tbl summary{cursor:pointer;color:var(--ember);font-size:14px;list-style:none}
+details.tbl summary::-webkit-details-marker{display:none}
+details.tbl[open] summary{margin-bottom:8px}
+.tbl-wrap{overflow-x:auto}
+.tbl-wrap table{border-collapse:collapse;font-size:13px;width:100%;font-variant-numeric:tabular-nums}
+.tbl-wrap th,.tbl-wrap td{padding:6px 8px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+.tbl-wrap th{font:500 11px var(--f-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.tbl-wrap th:first-child,.tbl-wrap td:first-child{text-align:left}
+.tips{display:flex;flex-direction:column;gap:16px}
+.tipx{border-left:3px solid var(--lvl);padding-left:12px;display:flex;flex-direction:column;gap:6px}
+.tipx .lvl{font:600 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--lvl)}
+.tipx h3{margin:0;font:700 16.5px/1.3 var(--f-body);text-wrap:balance}
+.tipx p{margin:0;color:var(--muted);font-size:14.5px;text-wrap:pretty}
+.tipx ul{margin:0;padding-left:18px;font-size:15px;display:flex;flex-direction:column;gap:4px}
+.tipx .src{font-size:12.5px;color:var(--faint)}
+.tipx .src a{color:var(--muted)}
+.lvl-alerta{--lvl:var(--danger)} .lvl-atencao{--lvl:var(--warn)} .lvl-ok{--lvl:var(--good)}
+.facts{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px;font-size:15px}
 .legend span{display:flex;align-items:center;gap:8px;min-width:0}
 .legend i{width:10px;height:10px;border-radius:3px;flex:none}
 .legend em{font-style:normal;margin-left:auto;font-family:var(--f-mono);color:var(--muted);font-size:13px}
@@ -298,6 +335,23 @@ details.card[open] summary::after{content:"–"}
 
   <!-- NOITES -->
   <section class="panel" id="p-noites" role="tabpanel" aria-labelledby="tab-noites" hidden>
+    <div class="card" id="trendCard">
+      <div class="row">
+        <span><span class="lbl">Evolução</span><span class="hint" id="trendHint"></span></span>
+        <div class="seg" id="rangeSeg"><button data-v="7">7</button><button data-v="14">14</button><button data-v="30">30</button></div>
+      </div>
+      <dl class="kpis" id="trendKpis"></dl>
+      <div class="chart-wrap" id="stackWrap"><canvas id="stackCv" aria-label="Tempo em cada estágio por noite, em horas"></canvas><div class="ctip" hidden></div></div>
+      <div class="legend legend-row" id="stackLegend"></div>
+      <div class="chips-scroll" id="metricSeg" role="group" aria-label="Métrica do gráfico de linha">
+        <button class="chip" data-v="tst">Sono total</button><button class="chip" data-v="R">REM</button><button class="chip" data-v="D">Profundo</button>
+        <button class="chip" data-v="latency">Latência</button><button class="chip" data-v="waso">Acordado</button><button class="chip" data-v="eff">Eficiência</button><button class="chip" data-v="kss">Sonolência</button>
+      </div>
+      <div class="chart-wrap small" id="lineWrap"><canvas id="lineCv" aria-label="Métrica escolhida por noite"></canvas><div class="ctip" hidden></div></div>
+      <details class="tbl"><summary>Ver em tabela</summary><div class="tbl-wrap"><table id="trendTable"></table></div></details>
+      <div class="actions"><button class="btn-ghost" id="periodPdf">Baixar PDF do período</button><button class="btn-ghost" id="periodShare" hidden>Compartilhar</button></div>
+    </div>
+    <div class="card" id="analysisCard"></div>
     <p class="insight" id="insight"></p>
     <div class="nights" id="nights"></div>
   </section>
@@ -338,6 +392,19 @@ details.card[open] summary::after{content:"–"}
         <li>Na janela, um movimento de 2 s ou mais dispara o alarme. Sem movimento, ele toca no horário limite.</li>
       </ul>
 
+      <h2>Como o Maré monta as dicas</h2>
+      <p>A análise olha as últimas 7 noites e a noite do relatório, e só aponta um padrão a partir de 3 noites. Cada dica traz o mecanismo, o que fazer e a fonte. A ordem segue o peso de cada achado:</p>
+      <ul>
+        <li><b>Duração:</b> média abaixo de 7 h, o mínimo do consenso da AASM e da Sleep Research Society. O horário sugerido para deitar parte do seu horário de acordar típico.</li>
+        <li><b>Regularidade:</b> variação do ponto médio do sono acima de 60 min entre as noites.</li>
+        <li><b>Latência:</b> mediana acima de 30 min, com controle de estímulos da TCC-I e o corte de cafeína 6 h antes de deitar.</li>
+        <li><b>Fragmentação:</b> eficiência abaixo de 85% ou mais de 30 min acordado depois de dormir.</li>
+        <li><b>Ronco:</b> em 3 noites ou mais da semana, com orientação de posição e sinais de alerta para apneia.</li>
+        <li><b>Despertar:</b> sonolência alta ao acordar ou alarme no horário limite.</li>
+        <li><b>Sono diurno:</b> noites dormidas de dia, como depois de plantão.</li>
+      </ul>
+      <p>As médias de profundo e REM aparecem no gráfico, mas não geram dicas sozinhas: pelo celular elas são estimadas pela posição no ciclo, e uma dica em cima de uma estimativa seria só uma estimativa a mais.</p>
+
       <h2>Limites</h2>
       <ul>
         <li>O navegador pausa os sensores com a tela apagada. Por isso a tela fica ligada, em preto, e o despertador comum de segurança é obrigatório.</li>
@@ -355,6 +422,14 @@ details.card[open] summary::after{content:"–"}
       <p class="ref">Bhat S, et al. Is there a clinical role for smartphone sleep apps? <i>J Clin Sleep Med</i>. 2015;11(7):709-15. <a href="https://doi.org/10.5664/jcsm.4840" target="_blank" rel="noopener">doi:10.5664/jcsm.4840</a></p>
       <p class="ref">Fino E, et al. (Not so) Smart sleep tracking through the phone. <i>J Sleep Res</i>. 2020;29(1):e12935. <a href="https://doi.org/10.1111/jsr.12935" target="_blank" rel="noopener">doi:10.1111/jsr.12935</a></p>
       <p class="ref">Brooks A, Lack L. A brief afternoon nap following nocturnal sleep restriction: which nap duration is most recuperative? <i>Sleep</i>. 2006;29(6):831-40. <a href="https://doi.org/10.1093/sleep/29.6.831" target="_blank" rel="noopener">doi:10.1093/sleep/29.6.831</a></p>
+      <p class="ref">Watson NF, et al. Recommended amount of sleep for a healthy adult: AASM/SRS consensus. <i>Sleep</i>. 2015;38(6):843-4. <a href="https://doi.org/10.5665/sleep.4716" target="_blank" rel="noopener">doi:10.5665/sleep.4716</a></p>
+      <p class="ref">Windred DP, et al. Sleep regularity is a stronger predictor of mortality risk than sleep duration. <i>Sleep</i>. 2024;47(1). <a href="https://doi.org/10.1093/sleep/zsad253" target="_blank" rel="noopener">doi:10.1093/sleep/zsad253</a></p>
+      <p class="ref">Qaseem A, et al. Management of chronic insomnia disorder in adults (ACP). <i>Ann Intern Med</i>. 2016;165(2):125-33. <a href="https://doi.org/10.7326/M15-2175" target="_blank" rel="noopener">doi:10.7326/M15-2175</a></p>
+      <p class="ref">Drake C, et al. Caffeine effects on sleep taken 0, 3, or 6 hours before going to bed. <i>J Clin Sleep Med</i>. 2013;9(11):1195-200. <a href="https://doi.org/10.5664/jcsm.3170" target="_blank" rel="noopener">doi:10.5664/jcsm.3170</a></p>
+      <p class="ref">Ebrahim IO, et al. Alcohol and sleep I: effects on normal sleep. <i>Alcohol Clin Exp Res</i>. 2013;37(4):539-49. <a href="https://doi.org/10.1111/acer.12006" target="_blank" rel="noopener">doi:10.1111/acer.12006</a></p>
+      <p class="ref">Kredlow MA, et al. The effects of physical activity on sleep: a meta-analytic review. <i>J Behav Med</i>. 2015;38(3):427-49. <a href="https://doi.org/10.1007/s10865-015-9617-6" target="_blank" rel="noopener">doi:10.1007/s10865-015-9617-6</a></p>
+      <p class="ref">Ravesloot MJL, et al. The undervalued potential of positional therapy in position-dependent snoring and OSA. <i>Sleep Breath</i>. 2013;17(1):39-49. <a href="https://doi.org/10.1007/s11325-012-0683-5" target="_blank" rel="noopener">doi:10.1007/s11325-012-0683-5</a></p>
+      <p class="ref">Liira J, et al. Pharmacological interventions for sleepiness and sleep disturbances caused by shift work. <i>Cochrane Database Syst Rev</i>. 2014;(8):CD009776. <a href="https://doi.org/10.1002/14651858.CD009776.pub2" target="_blank" rel="noopener">doi:10.1002/14651858.CD009776.pub2</a></p>
       <p class="ref">Cole RJ, et al. Automatic sleep/wake identification from wrist activity. <i>Sleep</i>. 1992;15(5):461-9. <a href="https://doi.org/10.1093/sleep/15.5.461" target="_blank" rel="noopener">doi:10.1093/sleep/15.5.461</a></p>
     </article>
   </section>
@@ -661,6 +736,168 @@ const Core = (() => {
   return { EPOCH_S, EPM, T, act, isMove, isTwitch, score, summarize, sampleNight, findOnset, dScores };
 })();
 
+/* Análise do sono: números por noite, padrão do período e dicas priorizadas com mecanismo e referência. */
+const Analysis = (() => {
+  const REF = {
+    watson: { t: 'Watson et al. Sleep 2015 · consenso AASM/SRS', doi: '10.5665/sleep.4716' },
+    windred: { t: 'Windred et al. Sleep 2024', doi: '10.1093/sleep/zsad253' },
+    qaseem: { t: 'Qaseem et al. Ann Intern Med 2016 · diretriz ACP', doi: '10.7326/M15-2175' },
+    drake: { t: 'Drake et al. J Clin Sleep Med 2013', doi: '10.5664/jcsm.3170' },
+    ebrahim: { t: 'Ebrahim et al. Alcohol Clin Exp Res 2013', doi: '10.1111/acer.12006' },
+    kredlow: { t: 'Kredlow et al. J Behav Med 2015', doi: '10.1007/s10865-015-9617-6' },
+    ravesloot: { t: 'Ravesloot et al. Sleep Breath 2013', doi: '10.1007/s11325-012-0683-5' },
+    liira: { t: 'Liira et al. Cochrane 2014', doi: '10.1002/14651858.CD009776.pub2' },
+    hilditch: { t: 'Hilditch & McHill. Nat Sci Sleep 2019', doi: '10.2147/NSS.S188911' },
+    tassi: { t: 'Tassi & Muzet. Sleep Med Rev 2000', doi: '10.1053/smrv.2000.0098' }
+  };
+  const pad = n => String(n).padStart(2, '0');
+  const dur = m => { m = Math.max(0, Math.round(m)); const h = Math.floor(m / 60), r = m % 60; return h ? `${h} h ${pad(r)} min` : `${r} min`; };
+  const clock = ms => { const d = new Date(ms); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+  const mean = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : NaN;
+  const median = a => { if (!a.length) return NaN; const s = a.slice().sort((x, y) => x - y), k = s.length >> 1; return s.length % 2 ? s[k] : (s[k - 1] + s[k]) / 2; };
+  const sd = a => { if (a.length < 2) return 0; const m = mean(a); return Math.sqrt(mean(a.map(x => (x - m) ** 2))); };
+  const sinceSix = ms => { const d = new Date(ms); return ((d.getHours() * 60 + d.getMinutes()) - 18 * 60 + 1440) % 1440; }; // minutos desde 18:00
+
+  function nightStats(sess, sc) {
+    sc = sc || Core.score(sess.epochs, { mode: sess.mode });
+    const s = Core.summarize(sess, sc), onset = sess.start + (s.latency || 0) * 60000, end = sess.end;
+    const wakeAt = sess.alarm && !sess.example ? Math.min(end, sess.alarm.at) : end;
+    return {
+      id: sess.id, start: sess.start, end, onset, wakeAt, mode: sess.mode,
+      tst: s.tst, inBed: s.inBed, latency: s.latency, eff: s.eff, waso: s.waso,
+      W: s.W, L: s.L, D: s.D, R: s.R, gap: s.gap, cycles: s.cyclesDone + (s.lastCycleMin >= 45 ? 1 : 0),
+      snore: s.snore, mic: !(sess.sensors && sess.sensors.mic === false), kss: sess.kss || null,
+      reason: sess.alarm ? sess.alarm.reason : null, endStage: s.endStage,
+      mid: sinceSix((onset + wakeAt) / 2), daySleep: (() => { const h = new Date(onset).getHours(); return h >= 6 && h < 15; })()
+    };
+  }
+
+  /** nights: estatísticas de noites (mais recente primeiro). focus: a noite do relatório, se houver. */
+  function analyze(nights, focus) {
+    const N = nights.filter(n => n.mode === 'night' && n.tst >= 60).slice(0, 14), tips = [];
+    const last7 = N.slice(0, 7), n = last7.length;
+    const avg = k => mean(last7.map(x => x[k]).filter(v => v != null && !isNaN(v)));
+    const P = {
+      n, tst: avg('tst'), R: avg('R'), D: avg('D'), L: avg('L'), latency: median(last7.map(x => x.latency).filter(v => v != null)),
+      eff: avg('eff'), waso: avg('waso'), regularity: n >= 3 ? sd(last7.map(x => x.mid)) : null,
+      kss: avg('kss'), snoreNights: last7.filter(x => x.mic && x.snore >= 20).length, micNights: last7.filter(x => x.mic).length,
+      wake: n ? median(last7.map(x => sinceSix(x.wakeAt))) : null
+    };
+    const wakeClock = P.wake != null ? (() => { const m = (P.wake + 18 * 60) % 1440; return pad(Math.floor(m / 60)) + ':' + pad(Math.round(m % 60)); })() : null;
+    const bedFor = (wakeMin, needMin) => { const m = ((wakeMin + 18 * 60 - needMin) % 1440 + 1440) % 1440; return pad(Math.floor(m / 60)) + ':' + pad(Math.round(m % 60) % 60); };
+    const add = (o) => tips.push(o);
+    const enough = n >= 3;
+
+    // 1. duração
+    if (enough && P.tst < 420) {
+      const lat = isNaN(P.latency) ? 15 : Math.min(30, P.latency);
+      add({
+        id: 'curto', prio: P.tst < 360 ? 1 : 2, level: P.tst < 360 ? 'alerta' : 'atencao',
+        title: `Média de ${dur(P.tst)} de sono, abaixo das 7 h recomendadas`,
+        why: 'Abaixo de 7 h por noite, a pressão de sono (adenosina) que sobra de um dia se soma à do seguinte, e atenção, humor e metabolismo pioram de forma dose-dependente. O REM se concentra no último terço da noite: encurtar o fim da noite corta justamente ele.',
+        do: [wakeClock ? `Para acordar às ${wakeClock} com 7 h 30 min de sono, deite por volta de ${bedFor(P.wake, 450 + lat)}.` : 'Some 7 h 30 min de sono ao tempo que você leva para dormir e conte de trás para frente a partir do horário de acordar.',
+             'Antecipe o horário de deitar em 15–30 min por semana, mantendo fixo o de acordar.'],
+        ref: [REF.watson]
+      });
+    }
+    // 2. regularidade
+    if (n >= 4 && P.regularity > 60) {
+      add({
+        id: 'irregular', prio: P.regularity > 90 ? 1 : 2, level: 'atencao',
+        title: `Seus horários variam cerca de ${Math.round(P.regularity)} min de uma noite para outra`,
+        why: 'O relógio central (núcleo supraquiasmático) se acerta pela luz e pela rotina. Mudar o horário todo dia funciona como um jet lag pequeno e repetido. Numa coorte de 60 mil pessoas medidas por acelerômetro, a regularidade previu mortalidade melhor que a duração do sono.',
+        do: ['Fixe o horário de acordar, inclusive nas folgas (variação de até 30–60 min).', 'Pegue luz forte logo ao acordar e reduza a luz nas 2 h antes de deitar.'],
+        ref: [REF.windred]
+      });
+    }
+    // 3. latência longa
+    const latF = focus && focus.latency != null && focus.latency > 45;
+    if ((enough && P.latency > 30) || latF) {
+      add({
+        id: 'latencia', prio: 2, level: 'atencao',
+        title: enough && P.latency > 30 ? `Você leva cerca de ${dur(P.latency)} para pegar no sono` : `Nesta noite você levou ${dur(focus.latency)} para pegar no sono`,
+        why: 'Ficar acordado na cama ensina o cérebro a associar cama com vigília e mantém o sistema de alerta ligado. A terapia cognitivo-comportamental para insônia (TCC-I) é o tratamento de primeira linha justamente por quebrar essa associação. Cafeína ainda ativa 6 h antes de deitar reduziu o sono de forma mensurável.',
+        do: ['Sem sono em uns 20 min, saia da cama, faça algo calmo com pouca luz e volte quando sentir sono.', 'Use a cama só para dormir e mantenha o horário de acordar fixo.', 'Última cafeína pelo menos 6 h antes de deitar.'],
+        ref: [REF.qaseem, REF.drake]
+      });
+    }
+    // 4. fragmentação
+    const wasoF = focus && focus.waso > 45;
+    if ((enough && (P.eff < 0.85 || P.waso > 30)) || wasoF) {
+      add({
+        id: 'fragmentado', prio: 2, level: 'atencao',
+        title: enough && (P.eff < 0.85 || P.waso > 30) ? `Sono interrompido: média de ${dur(P.waso)} acordado depois de dormir` : `Nesta noite você ficou ${dur(focus.waso)} acordado depois de pegar no sono`,
+        why: 'Cada despertar reinicia parte do ciclo e reduz o tempo em N3 e REM. Causas frequentes: cafeína tarde, álcool (consolida a primeira metade da noite e fragmenta a segunda), quarto quente ou barulhento e urinar de madrugada. Exercício regular reduz de forma moderada o tempo acordado durante a noite.',
+        do: ['Corte cafeína 6 h antes e álcool 3–4 h antes de deitar.', 'Quarto fresco, escuro e silencioso; menos líquido nas 2 h finais.', 'Exercício regular, de preferência terminando algumas horas antes de deitar.'],
+        ref: [REF.ebrahim, REF.kredlow]
+      });
+    }
+    // 5. ronco
+    if (P.micNights >= 3 && P.snoreNights >= 3) {
+      const sn = mean(last7.filter(x => x.mic).map(x => x.snore));
+      add({
+        id: 'ronco', prio: sn > 60 ? 1 : 3, level: sn > 60 ? 'alerta' : 'atencao',
+        title: `Ronco em ${P.snoreNights} de ${P.micNights} noites (média de ${dur(sn)})`,
+        why: 'No sono, o tônus dos dilatadores da faringe (como o genioglosso) cai; de barriga para cima, a gravidade leva língua e palato para trás e a via aérea vibra ou colapsa. Álcool reduz ainda mais esse tônus. Em média, 56% das pessoas com apneia obstrutiva têm apneia dependente da posição.',
+        do: ['Durma de lado. Um travesseiro nas costas ajuda a não virar.', 'Evite álcool e sedativos à noite.', 'Pausas na respiração percebidas por alguém, engasgos, sonolência de dia ou pressão alta pedem avaliação de apneia (STOP-Bang e polissonografia).'],
+        ref: [REF.ravesloot]
+      });
+    }
+    // 6. acordar grogue
+    const kssList = last7.filter(x => x.kss);
+    const kHigh = kssList.filter(x => x.kss >= 7).length;
+    const focusLimit = focus && focus.reason === 'limit';
+    if ((kssList.length >= 3 && mean(kssList.map(x => x.kss)) >= 6.5) || (focus && focus.kss >= 7) || focusLimit) {
+      const lim = kssList.filter(x => x.reason === 'limit').map(x => x.kss), mov = kssList.filter(x => x.reason === 'move' || x.reason === 'light').map(x => x.kss);
+      let title = focusLimit ? 'O alarme tocou no horário limite, sem movimento antes' : `Você tem acordado sonolento (escala de sonolência ≥ 7 em ${kHigh} noites)`;
+      if (!focusLimit && focus && focus.kss >= 7) title = `Você acordou bem sonolento (escala de sonolência ${focus.kss}/9)`;
+      const extra = lim.length >= 2 && mov.length >= 2 ? ` Nas suas noites, a média foi ${mean(mov).toFixed(1).replace('.', ',')} acordando pelo movimento e ${mean(lim).toFixed(1).replace('.', ',')} pelo limite.` : '';
+      add({
+        id: 'inercia', prio: focusLimit ? 2 : 3, level: 'atencao', title,
+        why: 'Acordar de N3 produz mais inércia do sono que acordar de N1 ou N2; o REM fica no meio. A inércia piora com dívida de sono e quando você acorda perto do vale da temperatura corporal, de madrugada.' + extra,
+        do: ['Aumente a janela do alarme para 30–45 min: sobe a chance de pegar um movimento de sono leve.', 'Ao acordar, levante, pegue luz forte e, se quiser, tome a cafeína logo cedo.', 'Se continuar grogue mesmo acordando em sono leve, o problema provável é dormir pouco, não a hora do alarme.'],
+        ref: [REF.tassi, REF.hilditch]
+      });
+    }
+    // 7. sono diurno (plantão)
+    const day = N.slice(0, 7).filter(x => x.daySleep && x.tst >= 180);
+    if (day.length) {
+      add({
+        id: 'turno', prio: 2, level: 'atencao',
+        title: day.length === 1 ? 'Uma das suas noites foi dormida de dia' : `${day.length} das suas últimas noites foram dormidas de dia`,
+        why: 'De dia o relógio circadiano trabalha contra o sono: a temperatura e o cortisol sobem e a melatonina fica baixa, então o sono diurno tende a ser mais curto e fragmentado. Em revisão Cochrane, cochilo antes do plantão somado a cafeína reduziu a sonolência no turno; melatonina após o plantão acrescentou cerca de 24 min ao sono diurno, com evidência de baixa qualidade.',
+        do: ['Antes de um plantão noturno, cochile de 20 a 90 min no fim da tarde.', 'Na volta, óculos escuros; em casa, quarto totalmente escuro e ruído branco ou protetor auricular.', 'Mantenha um "sono-âncora": um bloco de umas 4 h no mesmo horário todos os dias, de plantão ou de folga.'],
+        ref: [REF.liira]
+      });
+    }
+    // 8. tudo certo
+    if (enough && !tips.length) {
+      add({
+        id: 'bom', prio: 4, level: 'ok',
+        title: 'Noites dentro do esperado',
+        why: `Média de ${dur(P.tst)} de sono${P.regularity != null ? (P.regularity < 15 ? ', horários quase sem variar' : `, horários variando cerca de ${Math.round(P.regularity)} min`) : ''} e pouco tempo acordado durante a noite.`,
+        do: ['Mantenha o horário de acordar fixo, inclusive nas folgas: é o que mais protege esse padrão.'],
+        ref: [REF.watson, REF.windred]
+      });
+    }
+    tips.sort((a, b) => a.prio - b.prio);
+
+    // fatos da noite em foco
+    const facts = [];
+    if (focus) {
+      const cmp = (v, a, unit) => (n >= 3 && !isNaN(a)) ? ` (sua média: ${unit(a)})` : '';
+      facts.push(`Sono total: ${dur(focus.tst)}${cmp(focus.tst, P.tst, dur)}.`);
+      if (focus.latency != null) facts.push(`Latência: ${dur(focus.latency)}${n >= 3 && !isNaN(P.latency) ? ` (costuma ser ${dur(P.latency)})` : ''}.`);
+      if (focus.R) facts.push(`REM provável: ${dur(focus.R)}${cmp(focus.R, P.R, dur)}; profundo provável: ${dur(focus.D)}${cmp(focus.D, P.D, dur)}.`);
+      if (focus.reason === 'move' || focus.reason === 'light') facts.push('O alarme pegou um movimento dentro da janela, como planejado.');
+    }
+    return { period: P, tips, facts, nights: N.length };
+  }
+
+  return { nightStats, analyze, REF, dur, clock };
+})();
+Core.Analysis = Analysis;
+
 
 
 </script>
@@ -686,7 +923,7 @@ const store = {
   del(k) { try { localStorage.removeItem(k); } catch (e) {} }
 };
 const KEY = { settings: 'mare.settings.v1', sessions: 'mare.sessions.v1', active: 'mare.active.v1' };
-const DEFAULTS = { wakeBy: '06:30', windowMin: 30, mic: true, mattress: 'medio', sound: 'epico', napMin: 20, ramp: true, sv: 2 };
+const DEFAULTS = { wakeBy: '06:30', windowMin: 30, mic: true, mattress: 'medio', sound: 'epico', napMin: 20, ramp: true, sv: 2, range: 7, metric: 'tst' };
 const settings = Object.assign({}, DEFAULTS, store.get(KEY.settings, {}));
 if ((settings.sv || 1) < 2) { if (settings.sound === 'amanhecer') settings.sound = 'epico'; settings.sv = 2; }
 const saveSettings = () => store.set(KEY.settings, settings);
@@ -1193,93 +1430,356 @@ function nextAt(hhmm) {
   return d.getTime();
 }
 
-/* ---------------- hipnograma ---------------- */
+/* ---------------- gráficos ---------------- */
 const ROW = { W: 0, R: 1, L: 2, D: 3 };
 const STAGE_NAME = { W: 'Acordado', R: 'REM provável', L: 'Leve (N1–N2)', D: 'Profundo provável (N3)' };
+const STAGE_SHORT = { W: 'Acordado', R: 'REM', L: 'Leve', D: 'Profundo' };
 const STAGE_AT = { W: 'acordado', R: 'em REM provável', L: 'em sono leve', D: 'em sono profundo provável' };
-function rrect(c, x, y, w, h, r) { if (c.roundRect) { c.beginPath(); c.roundRect(x, y, w, h, Math.min(r, w / 2, h / 2)); } else { c.beginPath(); c.rect(x, y, w, h); } }
-function drawHypno(cv, sess, sc, mini) {
+const STACK = ['D', 'L', 'R', 'W']; // de baixo para cima
+function rrect(c, x, y, w, h, r) {
+  c.beginPath();
+  if (c.roundRect) c.roundRect(x, y, w, h, Array.isArray(r) ? r : Math.min(r, w / 2, h / 2)); else c.rect(x, y, w, h);
+}
+function screenPal() {
+  return {
+    W: css('--st-w'), R: css('--st-r'), L: css('--st-l'), D: css('--st-d'), gap: css('--st-gap'),
+    ink: css('--ink'), muted: css('--muted'), faint: css('--faint'), line: css('--line'), surface: css('--panel'),
+    ember: css('--ember'), emberSoft: 'rgba(255,157,92,.12)', body: css('--f-body'), mono: css('--f-mono'), display: css('--f-display')
+  };
+}
+const PRINT = { // paleta validada para fundo branco
+  W: '#eda100', R: '#6250d6', L: '#1baf7a', D: '#2a78d6', gap: '#ecebe6',
+  ink: '#15171f', muted: '#575a66', faint: '#9b9da8', line: '#e2e0da', surface: '#ffffff',
+  ember: '#c75a22', emberSoft: 'rgba(199,90,34,.10)',
+  body: '"Atkinson Hyperlegible", Arial, sans-serif', mono: '"IBM Plex Mono", "Courier New", monospace', display: '"Bricolage Grotesque", Arial, sans-serif'
+};
+function fitCanvas(cv) {
   const dpr = Math.min(3, window.devicePixelRatio || 1), W = cv.clientWidth, H = cv.clientHeight;
-  if (!W || !H) return;
+  if (!W || !H) return null;
   cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
   const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
+  return { c, W, H };
+}
+
+function paintHypno(c, X, Y, W, H, sess, sc, mini, P, k = 1) {
   const ep = sess.epochs, n = ep.length; if (!n) return;
-  const L = mini ? 0 : 66, R = mini ? 0 : 4, top = mini ? 2 : 6, axis = mini ? 0 : 20, actH = mini ? 0 : (sc.hasHr ? 40 : 30), gap = mini ? 0 : 10;
+  const L = mini ? 0 : 66 * k, R = mini ? 0 : 4 * k, top = mini ? 2 : 6 * k, axis = mini ? 0 : 20 * k;
+  const actH = mini ? 0 : (sc.hasHr ? 40 : 30) * k, gap = mini ? 0 : 10 * k;
   const plotH = H - top - axis - actH - gap, rowH = plotH / 4;
-  const x = i => L + (W - L - R) * i / n;
-  const col = { W: css('--st-w'), R: css('--st-r'), L: css('--st-l'), D: css('--st-d'), '?': css('--st-gap') };
+  const x = i => X + L + (W - L - R) * i / n, yR = r => Y + top + rowH * r;
+  const col = { W: P.W, R: P.R, L: P.L, D: P.D, '?': P.gap };
   if (!mini) {
-    c.font = '12px ' + css('--f-body'); c.textBaseline = 'middle';
-    ['Acordado', 'REM', 'Leve', 'Profundo'].forEach((t, k) => {
-      const y = top + rowH * k + rowH / 2;
-      c.fillStyle = css('--muted'); c.fillText(t, 0, y);
-      c.strokeStyle = css('--line'); c.lineWidth = 1; c.beginPath(); c.moveTo(L, Math.round(y) + .5); c.lineTo(W - R, Math.round(y) + .5); c.stroke();
+    c.font = `${12 * k}px ${P.body}`; c.textBaseline = 'middle';
+    ['Acordado', 'REM', 'Leve', 'Profundo'].forEach((t, r) => {
+      const y = Math.round(yR(r) + rowH / 2) + .5;
+      c.fillStyle = P.muted; c.fillText(t, X, y);
+      c.strokeStyle = P.line; c.lineWidth = 1; c.beginPath(); c.moveTo(X + L, y); c.lineTo(X + W - R, y); c.stroke();
     });
     if (sess.mode === 'night' && sess.wakeBy) {
       const i0 = (sess.wakeBy - sess.windowMin * 60000 - sess.start) / 30000, i1 = (sess.wakeBy - sess.start) / 30000;
       const xa = x(Math.max(0, i0)), xb = x(Math.min(n, i1));
-      if (xb > xa) { c.fillStyle = 'rgba(255,157,92,.12)'; c.fillRect(xa, top, xb - xa, plotH); }
+      if (xb > xa) { c.fillStyle = P.emberSoft; c.fillRect(xa, Y + top, xb - xa, plotH); }
     }
   }
-  c.strokeStyle = css('--faint'); c.lineWidth = 1; c.beginPath();
+  c.strokeStyle = P.faint; c.lineWidth = k; c.beginPath();
   for (let i = 0; i < n; i++) {
     const s = sc.stage[i]; if (s === '?') continue;
-    const y = top + rowH * ROW[s] + rowH / 2;
+    const y = yR(ROW[s]) + rowH / 2;
     if (i === 0 || sc.stage[i - 1] === '?') c.moveTo(x(i), y); else c.lineTo(x(i), y);
     c.lineTo(x(i + 1), y);
   }
   c.stroke();
   for (let i = 0; i < n;) {
     const s = sc.stage[i]; let j = i; while (j < n && sc.stage[j] === s) j++;
-    const w = Math.max(1.5, x(j) - x(i));
-    if (s === '?') { c.fillStyle = col['?']; c.fillRect(x(i), top, w, plotH); }
-    else { c.fillStyle = col[s]; rrect(c, x(i), top + rowH * ROW[s] + rowH * .18, w, rowH * .64, mini ? 1 : 3); c.fill(); }
+    const w = Math.max(1.5 * k, x(j) - x(i));
+    if (s === '?') { c.fillStyle = col['?']; c.fillRect(x(i), Y + top, w, plotH); }
+    else { c.fillStyle = col[s]; rrect(c, x(i), yR(ROW[s]) + rowH * .18, w, rowH * .64, (mini ? 1 : 3) * k); c.fill(); }
     i = j;
   }
   if (mini) return;
-  const ay = top + plotH + gap;
+  const ay = Y + top + plotH + gap;
   let mx = 8; for (const e of ep) mx = Math.max(mx, Core.act(e));
-  c.fillStyle = css('--faint');
-  for (let k = 0; k < n; k++) {
-    const a = Core.act(ep[k]); if (a <= .2) continue;
+  c.fillStyle = P.faint;
+  for (let q = 0; q < n; q++) {
+    const a = Core.act(ep[q]); if (a <= .2) continue;
     const h = Math.max(1, actH * Math.sqrt(a / mx));
-    c.fillRect(x(k), ay + actH - h, Math.max(1, x(k + 1) - x(k) - .3), h);
-  }
-  if (sc.hasHr) {
-    const hv = ep.map(e => (e.hr > 0 && !e.gap) ? e.hr : 0), vals = hv.filter(Boolean);
-    let lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
-    if (hi - lo < 10) { const mid = (hi + lo) / 2; lo = mid - 5; hi = mid + 5; }
-    c.strokeStyle = css('--st-r'); c.lineWidth = 1.4; c.beginPath();
-    let pen = false;
-    for (let k = 0; k < n; k++) {
-      let s = 0, cn = 0;
-      for (let j = k - 1; j <= k + 1; j++) if (j >= 0 && j < n && hv[j]) { s += hv[j]; cn++; }
-      if (!cn) { pen = false; continue; }
-      const y = ay + actH - ((s / cn - lo) / (hi - lo)) * actH, xx = x(k + .5);
-      if (!pen) { c.moveTo(xx, y); pen = true; } else c.lineTo(xx, y);
-    }
-    c.stroke();
-    c.fillStyle = css('--muted'); c.font = '11px ' + css('--f-mono'); c.textBaseline = 'middle';
-    c.fillText('FC bpm', 0, ay + 7);
-    c.fillText(`${Math.round(lo)}–${Math.round(hi)}`, 0, ay + actH - 6);
+    c.fillRect(x(q), ay + actH - h, Math.max(1, x(q + 1) - x(q) - .3), h);
   }
   const t0 = sess.start, t1 = sess.start + n * 30000, span = t1 - t0;
   const stepMin = span > 5 * 3600000 ? 60 : span > 2 * 3600000 ? 30 : span > 40 * 60000 ? 10 : 5;
   const d = new Date(t0); d.setSeconds(0, 0); d.setMinutes(Math.ceil(d.getMinutes() / stepMin) * stepMin);
-  c.font = '11px ' + css('--f-mono'); c.textBaseline = 'alphabetic'; c.fillStyle = css('--muted');
-  let lastX = -99;
+  c.font = `${11 * k}px ${P.mono}`; c.textBaseline = 'alphabetic'; c.fillStyle = P.muted;
+  let lastX = -1e9;
   for (let h = d.getTime(); h <= t1; h += stepMin * 60000) {
     const xi = x((h - t0) / 30000);
-    c.fillRect(Math.round(xi), top + plotH, 1, 4);
-    const lx = Math.min(W - R - 34, Math.max(L, xi - 17));
-    if (lx - lastX > 40) { c.fillText(hm(h), lx, H - 3); lastX = lx; }
+    c.fillRect(Math.round(xi), Y + top + plotH, k, 4 * k);
+    const lx = Math.min(X + W - R - 34 * k, Math.max(X + L, xi - 17 * k));
+    if (lx - lastX > 40 * k) { c.fillText(hm(h), lx, Y + H - 3 * k); lastX = lx; }
   }
-  if (sess.alarm && !sess.example) {
-    const xi = x(Math.min(n, (sess.alarm.at - sess.start) / 30000));
-    c.strokeStyle = css('--ember'); c.lineWidth = 2; c.beginPath(); c.moveTo(xi, top); c.lineTo(xi, top + plotH); c.stroke();
-  } else if (sess.example) {
-    const xi = x(n); c.strokeStyle = css('--ember'); c.lineWidth = 2; c.beginPath(); c.moveTo(xi - 1, top); c.lineTo(xi - 1, top + plotH); c.stroke();
+  const mark = sess.example ? n : (sess.alarm ? Math.min(n, (sess.alarm.at - sess.start) / 30000) : null);
+  if (mark != null) { const xi = x(mark) - (mark >= n ? k : 0); c.strokeStyle = P.ember; c.lineWidth = 2 * k; c.beginPath(); c.moveTo(xi, Y + top); c.lineTo(xi, Y + top + plotH); c.stroke(); }
+}
+function drawHypno(cv, sess, sc, mini) { const f = fitCanvas(cv); if (f) paintHypno(f.c, 0, 0, f.W, f.H, sess, sc, mini, screenPal()); }
+
+const WD = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+const nightDay = ms => ms - 6 * 3600000;
+const dayLabel = ms => { const d = new Date(nightDay(ms)); return [WD[d.getDay()], String(d.getDate())]; };
+function niceStep(range, target) { const raw = range / target, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * p; }
+
+/** Barras empilhadas por noite (horas). nights: cronológico. Retorna as faixas de toque. */
+function paintStack(c, X, Y, W, H, nights, P, opt = {}) {
+  const k = opt.k || 1, L = 40 * k, B = 34 * k, T = 14 * k, R = 6 * k, n = nights.length;
+  const plotW = W - L - R, plotH = H - T - B;
+  const tot = nights.map(x => x.D + x.L + x.R + x.W);
+  const maxH = Math.max(9, Math.ceil(Math.max(...tot, 0) / 60 / 2) * 2);
+  const yv = min => Y + T + plotH - min / 60 / maxH * plotH;
+  c.font = `${11 * k}px ${P.mono}`; c.textBaseline = 'middle'; c.textAlign = 'right';
+  const yMeta = yv(420);
+  for (let h = 0; h <= maxH; h += 2) {
+    const y = Math.round(yv(h * 60)) + .5;
+    c.strokeStyle = P.line; c.lineWidth = 1; c.beginPath(); c.moveTo(X + L, y); c.lineTo(X + W - R, y); c.stroke();
+    if (Math.abs(y - yMeta) >= 12 * k) { c.fillStyle = P.muted; c.fillText(`${h} h`, X + L - 8 * k, y); }
   }
+  c.fillStyle = P.ink; c.font = `600 ${11 * k}px ${P.mono}`; c.fillText('7 h', X + L - 8 * k, yMeta);
+  c.textAlign = 'left';
+  const slot = plotW / Math.max(n, 1), bw = Math.max(5 * k, Math.min(30 * k, slot * .62)), hits = [];
+  if (opt.sel != null && nights[opt.sel]) { c.fillStyle = P.emberSoft; c.fillRect(X + L + slot * opt.sel, Y + T, slot, plotH); }
+  nights.forEach((nt, i) => {
+    const cx = X + L + slot * (i + .5), x0 = cx - bw / 2;
+    let base = 0;
+    const segs = STACK.map(s => [s, nt[s] || 0]).filter(z => z[1] > 0);
+    segs.forEach(([s, v], q) => {
+      const y1 = yv(base), y0 = yv(base + v), top = q === segs.length - 1, h = Math.max(0, y1 - y0 - 2 * k);
+      if (h > 0) { c.fillStyle = P[s]; rrect(c, x0, y0 + 2 * k, bw, h, top ? [4 * k, 4 * k, 0, 0] : 0); c.fill(); }
+      base += v;
+    });
+    hits.push({ i, x0: X + L + slot * i, x1: X + L + slot * (i + 1) });
+  });
+  // meta de 7 h
+  const ym = Math.round(yv(420)) + .5;
+  c.strokeStyle = P.ink; c.globalAlpha = .55; c.lineWidth = 1.2 * k; c.setLineDash([5 * k, 4 * k]);
+  c.beginPath(); c.moveTo(X + L, ym); c.lineTo(X + W - R, ym); c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
+  // datas
+  const every = n > 21 ? 5 : n > 10 ? 2 : 1;
+  c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+  nights.forEach((nt, i) => {
+    if ((n - 1 - i) % every) return;
+    const [w, d] = dayLabel(nt.start), cx = X + L + slot * (i + .5);
+    c.fillStyle = P.muted; c.font = `${10 * k}px ${P.mono}`; c.fillText(w, cx, Y + H - 17 * k);
+    c.fillStyle = P.ink; c.font = `${12 * k}px ${P.mono}`; c.fillText(d, cx, Y + H - 3 * k);
+  });
+  c.textAlign = 'left';
+  return hits;
+}
+
+const METRICS = {
+  tst: { label: 'Sono total', get: n => n.tst, color: 'ember', hours: true, ref: [420, 'meta 7 h'] },
+  R: { label: 'REM', get: n => n.R, color: 'R' },
+  D: { label: 'Profundo', get: n => n.D, color: 'D' },
+  latency: { label: 'Latência', get: n => n.latency, color: 'ember', ref: [30, '30 min'] },
+  waso: { label: 'Acordado', get: n => n.waso, color: 'W' },
+  eff: { label: 'Eficiência', get: n => n.eff * 100, color: 'ember', pct: true, ref: [85, '85%'] },
+  kss: { label: 'Sonolência', get: n => n.kss, color: 'ember', kss: true }
+};
+const metricFmt = (m, v) => v == null || isNaN(v) ? '—' : m.pct ? `${Math.round(v)}%` : m.kss ? `${num(v)}/9` : durShort(v);
+/** Linha de uma métrica por noite, com média e rótulo do último valor. */
+function paintLine(c, X, Y, W, H, nights, key, P, opt = {}) {
+  const m = METRICS[key], k = opt.k || 1, L = 46 * k, B = 34 * k, T = 16 * k, R = 14 * k, n = nights.length;
+  const plotW = W - L - R, plotH = H - T - B, vals = nights.map(x => { const v = m.get(x); return v == null || isNaN(v) ? null : v; });
+  const got = vals.filter(v => v != null);
+  let lo, hi, step;
+  if (m.kss) { lo = 1; hi = 9; step = 2; }
+  else if (m.pct) { lo = Math.min(70, Math.floor(Math.min(...got, 100) / 5) * 5); hi = 100; step = niceStep(hi - lo, 4); }
+  else {
+    const mn = Math.min(...got, m.ref ? m.ref[0] : Infinity), mx = Math.max(...got, m.ref ? m.ref[0] : 0, 10);
+    const span = Math.max(mx - mn, mx * .3, 10);
+    step = m.hours ? (span > 300 ? 120 : 60) : niceStep(span, 4);
+    lo = Math.max(0, Math.floor((mn - step * .5) / step) * step); hi = Math.ceil((mx + step * .3) / step) * step;
+    while ((hi - lo) / step < 3) { if (lo >= step) lo -= step; else hi += step; }
+  }
+  const yv = v => Y + T + plotH - (v - lo) / (hi - lo) * plotH;
+  const slot = plotW / Math.max(n, 1), xv = i => X + L + slot * (i + .5);
+  c.font = `${11 * k}px ${P.mono}`; c.textBaseline = 'middle'; c.textAlign = 'right';
+  const tick = v => m.pct ? `${v}%` : m.kss ? `${v}` : m.hours ? `${v / 60} h` : `${v}`;
+  const hasRef = m.ref && m.ref[0] >= lo && m.ref[0] <= hi, yRef = hasRef ? yv(m.ref[0]) : null;
+  for (let v = lo; v <= hi + 1e-9; v += step) {
+    const y = Math.round(yv(v)) + .5;
+    c.strokeStyle = P.line; c.lineWidth = 1; c.beginPath(); c.moveTo(X + L, y); c.lineTo(X + W - R, y); c.stroke();
+    if (!hasRef || Math.abs(y - yRef) >= 12 * k) { c.fillStyle = P.muted; c.font = `${11 * k}px ${P.mono}`; c.fillText(tick(v), X + L - 8 * k, y); }
+  }
+  if (hasRef) { c.fillStyle = P.ink; c.font = `600 ${11 * k}px ${P.mono}`; c.fillText(tick(m.ref[0]), X + L - 8 * k, yRef); }
+  if (!m.pct && !m.kss && !m.hours) { c.textAlign = 'left'; c.textBaseline = 'top'; c.fillText('min', X, Y); }
+  c.textAlign = 'left';
+  if (opt.sel != null && nights[opt.sel]) { c.fillStyle = P.emberSoft; c.fillRect(X + L + slot * opt.sel, Y + T, slot, plotH); }
+  if (m.ref && m.ref[0] > lo && m.ref[0] < hi) {
+    const y = Math.round(yv(m.ref[0])) + .5;
+    c.strokeStyle = P.ink; c.globalAlpha = .45; c.lineWidth = k; c.setLineDash([5 * k, 4 * k]);
+    c.beginPath(); c.moveTo(X + L, y); c.lineTo(X + W - R, y); c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
+  }
+  const col = P[m.color] || P.ember;
+  c.strokeStyle = col; c.lineWidth = 2 * k; c.lineJoin = 'round'; c.beginPath();
+  let pen = false;
+  vals.forEach((v, i) => { if (v == null) { pen = false; return; } const x = xv(i), y = yv(v); if (pen) c.lineTo(x, y); else { c.moveTo(x, y); pen = true; } });
+  c.stroke();
+  vals.forEach((v, i) => {
+    if (v == null) return;
+    c.beginPath(); c.arc(xv(i), yv(v), 4 * k, 0, Math.PI * 2); c.fillStyle = col; c.fill();
+    c.lineWidth = 2 * k; c.strokeStyle = P.surface; c.stroke();
+  });
+  const li = vals.map((v, i) => v == null ? -1 : i).filter(i => i >= 0).pop();
+  if (li != null && li >= 0) {
+    c.font = `600 ${12 * k}px ${P.body}`; c.fillStyle = P.ink; c.textBaseline = 'bottom';
+    const t = metricFmt(m, vals[li]), tw = c.measureText(t).width;
+    c.fillText(t, Math.min(X + W - tw, Math.max(X + L, xv(li) - tw / 2)), yv(vals[li]) - 8 * k);
+  }
+  const every = n > 21 ? 5 : n > 10 ? 2 : 1;
+  c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+  nights.forEach((nt, i) => {
+    if ((n - 1 - i) % every) return;
+    const [w, d] = dayLabel(nt.start);
+    c.fillStyle = P.muted; c.font = `${10 * k}px ${P.mono}`; c.fillText(w, xv(i), Y + H - 17 * k);
+    c.fillStyle = P.ink; c.font = `${12 * k}px ${P.mono}`; c.fillText(d, xv(i), Y + H - 3 * k);
+  });
+  c.textAlign = 'left';
+  return nights.map((nt, i) => ({ i, x0: X + L + slot * i, x1: X + L + slot * (i + 1) }));
+}
+
+/* ---------------- PDF (sem biblioteca: páginas desenhadas em canvas, embutidas como JPEG) ---------------- */
+function pdfFromJpegs(pages) {
+  const enc = new TextEncoder(), parts = [], offs = [];
+  let len = 0;
+  const put = x => { const b = typeof x === 'string' ? enc.encode(x) : x; parts.push(b); len += b.length; };
+  const obj = (id, body) => { offs[id] = len; put(`${id} 0 obj\n`); body(); put('\nendobj\n'); };
+  const n = pages.length, total = 3 + n * 3;
+  put('%PDF-1.4\n'); put(new Uint8Array([37, 226, 227, 207, 211, 10]));
+  obj(1, () => put('<< /Type /Catalog /Pages 2 0 R >>'));
+  obj(2, () => put(`<< /Type /Pages /Count ${n} /Kids [${pages.map((_, i) => `${4 + i * 3} 0 R`).join(' ')}] >>`));
+  obj(3, () => put('<< /Title (Mare - relatorio de sono) /Producer (Mare) >>'));
+  pages.forEach((pg, i) => {
+    const pid = 4 + i * 3, cid = pid + 1, iid = pid + 2, cs = 'q 595.28 0 0 841.89 0 0 cm /Im0 Do Q';
+    obj(pid, () => put(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im0 ${iid} 0 R >> >> /Contents ${cid} 0 R >>`));
+    obj(cid, () => { put(`<< /Length ${cs.length} >>\nstream\n`); put(cs); put('\nendstream'); });
+    obj(iid, () => { put(`<< /Type /XObject /Subtype /Image /Width ${pg.w} /Height ${pg.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${pg.bytes.length} >>\nstream\n`); put(pg.bytes); put('\nendstream'); });
+  });
+  const xref = len;
+  let x = `xref\n0 ${total + 1}\n0000000000 65535 f \n`;
+  for (let id = 1; id <= total; id++) x += String(offs[id]).padStart(10, '0') + ' 00000 n \n';
+  put(x); put(`trailer\n<< /Size ${total + 1} /Root 1 0 R /Info 3 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
+  return new Blob(parts, { type: 'application/pdf' });
+}
+class Doc {
+  constructor(subtitle) { this.W = 1240; this.H = 1754; this.M = 92; this.k = 2; this.pages = []; this.sub = subtitle; this.page(); }
+  get cw() { return this.W - 2 * this.M; }
+  page() {
+    const cv = document.createElement('canvas'); cv.width = this.W; cv.height = this.H;
+    const c = cv.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, this.W, this.H);
+    this.cv = cv; this.c = c; this.pages.push(cv); this.y = this.M;
+    c.fillStyle = PRINT.ember; c.font = `600 22px ${PRINT.display}`; c.textBaseline = 'alphabetic'; c.fillText('Maré', this.M, this.y + 16);
+    c.fillStyle = PRINT.muted; c.font = `18px ${PRINT.body}`; c.fillText(this.sub, this.M + 74, this.y + 16);
+    c.fillStyle = PRINT.line; c.fillRect(this.M, this.y + 34, this.cw, 2);
+    this.y += 70;
+  }
+  need(h) { if (this.y + h > this.H - this.M - 46) this.page(); }
+  lines(t, font, maxW) {
+    const c = this.c; c.font = font; const out = [];
+    for (const para of String(t).split('\n')) {
+      let line = '';
+      for (const w of para.split(' ')) { const tryL = line ? line + ' ' + w : w; if (c.measureText(tryL).width > maxW && line) { out.push(line); line = w; } else line = tryL; }
+      out.push(line);
+    }
+    return out;
+  }
+  text(t, o = {}) {
+    const size = o.size || 20, lh = o.lh || Math.round(size * 1.42), font = `${o.weight || 400} ${size}px ${o.font || PRINT.body}`, x = this.M + (o.indent || 0);
+    const ls = this.lines(t, font, o.maxW || this.cw - (o.indent || 0));
+    ls.forEach(l => { this.need(lh); this.c.font = font; this.c.fillStyle = o.color || PRINT.ink; this.c.textBaseline = 'alphabetic'; this.c.fillText(l, x, this.y + size); this.y += lh; });
+    this.y += o.after != null ? o.after : 0;
+  }
+  eyebrow(t) { this.text(t.toUpperCase(), { size: 16, font: PRINT.mono, color: PRINT.muted, after: 6 }); }
+  gap(h) { this.y += h; }
+  stats(items, cols = 3) {
+    const c = this.c, gw = this.cw / cols, rh = 92, rows = Math.ceil(items.length / cols);
+    this.need(rows * rh + 4);
+    c.fillStyle = PRINT.line; c.fillRect(this.M, this.y, this.cw, rows * rh + 2);
+    items.forEach(([lab, val], i) => {
+      const x = this.M + (i % cols) * gw, y = this.y + Math.floor(i / cols) * rh;
+      c.fillStyle = '#faf9f6'; c.fillRect(x + 1, y + 1, gw - 2, rh - 2);
+      c.fillStyle = PRINT.muted; c.font = `15px ${PRINT.mono}`; c.fillText(lab.toUpperCase(), x + 18, y + 32);
+      c.fillStyle = PRINT.ink; c.font = `500 30px ${PRINT.display}`; c.fillText(val, x + 18, y + 72);
+    });
+    this.y += rows * rh + 24;
+  }
+  chart(h, fn) { this.need(h); fn(this.c, this.M, this.y, this.cw, h); this.y += h + 18; }
+  legend(keys) {
+    this.need(34); let x = this.M; const c = this.c;
+    keys.forEach(([col, label]) => {
+      c.fillStyle = col; rrect(c, x, this.y + 7, 18, 18, 4); c.fill();
+      c.fillStyle = PRINT.ink; c.font = `17px ${PRINT.body}`; c.fillText(label, x + 26, this.y + 22);
+      x += 26 + c.measureText(label).width + 30;
+    });
+    this.y += 40;
+  }
+  table(head, rows, widths, opt = {}) {
+    const c = this.c, rh = opt.rh || 40, xs = []; let acc = this.M;
+    widths.forEach(w => { xs.push(acc); acc += w * this.cw; });
+    const drawHead = () => {
+      c.fillStyle = PRINT.muted; c.font = `14px ${PRINT.mono}`;
+      head.forEach((h, i) => c.fillText(h.toUpperCase(), xs[i] + 6, this.y + 24));
+      c.fillStyle = PRINT.ink; c.fillRect(this.M, this.y + rh - 2, this.cw, 2); this.y += rh;
+    };
+    this.need(rh * 2); drawHead();
+    rows.forEach(r => {
+      if (this.y + rh > this.H - this.M - 46) { this.page(); drawHead(); }
+      r.forEach((v, i) => {
+        if (v && typeof v === 'object') { c.fillStyle = v.color; rrect(c, xs[i] + 6, this.y + 11, 18, 18, 4); c.fill(); c.fillStyle = PRINT.ink; c.font = `18px ${PRINT.body}`; c.fillText(v.text, xs[i] + 34, this.y + 27); }
+        else { c.fillStyle = PRINT.ink; c.font = `18px ${i ? PRINT.mono : PRINT.body}`; c.fillText(String(v), xs[i] + 6, this.y + 27); }
+      });
+      c.fillStyle = PRINT.line; c.fillRect(this.M, this.y + rh - 1, this.cw, 1); this.y += rh;
+    });
+    this.y += 18;
+  }
+  tips(list) {
+    list.forEach(t => {
+      this.need(120);
+      const tag = t.level === 'alerta' ? 'Prioridade' : t.level === 'ok' ? 'Em dia' : 'Atenção';
+      const col = t.level === 'alerta' ? '#c43c32' : t.level === 'ok' ? '#0f8a2c' : '#a86a00';
+      const c = this.c; c.font = `600 15px ${PRINT.mono}`; const tw = c.measureText(tag.toUpperCase()).width + 20;
+      c.strokeStyle = col; c.lineWidth = 2; rrect(c, this.M, this.y + 2, tw, 28, 14); c.stroke();
+      c.fillStyle = col; c.fillText(tag.toUpperCase(), this.M + 10, this.y + 21); this.y += 40;
+      this.text(t.title, { size: 23, weight: 700, after: 4 });
+      this.text(t.why, { size: 18, color: PRINT.muted, after: 6 });
+      t.do.forEach(d => this.text('•  ' + d, { size: 18, indent: 8, after: 2 }));
+      this.text('Fonte: ' + t.ref.map(r => `${r.t} · doi.org/${r.doi}`).join(' | '), { size: 14, color: PRINT.faint, after: 22 });
+    });
+  }
+  async blob() {
+    const n = this.pages.length, stamp = new Date();
+    this.pages.forEach((cv, i) => {
+      const c = cv.getContext('2d'), y = this.H - this.M + 10;
+      c.fillStyle = PRINT.line; c.fillRect(this.M, y - 30, this.cw, 1);
+      c.fillStyle = PRINT.faint; c.font = `14px ${PRINT.body}`; c.textBaseline = 'alphabetic';
+      c.fillText(`Estimativa por movimento e som do celular; não substitui polissonografia. Gerado em ${stamp.toLocaleDateString('pt-BR')} ${hm(stamp.getTime())}.`, this.M, y);
+      const pg = `${i + 1}/${n}`; c.fillText(pg, this.W - this.M - c.measureText(pg).width, y);
+    });
+    const jp = [];
+    for (const cv of this.pages) {
+      const b = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.9));
+      jp.push({ w: cv.width, h: cv.height, bytes: new Uint8Array(await b.arrayBuffer()) });
+    }
+    return pdfFromJpegs(jp);
+  }
+}
+async function fontsReady() {
+  try { await Promise.all(['16px "Atkinson Hyperlegible"', '700 16px "Atkinson Hyperlegible"', '16px "Bricolage Grotesque"', '16px "IBM Plex Mono"'].map(f => document.fonts.load(f))); await document.fonts.ready; } catch (e) {}
+}
+async function deliver(blob, name, share) {
+  const file = new File([blob], name, { type: 'application/pdf' });
+  if (share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: name }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+  toast(`PDF salvo: ${name}`);
 }
 
 /* ---------------- interface ---------------- */
@@ -1341,7 +1841,7 @@ const UI = {
     const sc = scoreSession(s), sum = Core.summarize(s, sc);
     const tot = Math.max(1, sum.W + sum.L + sum.D + sum.R);
     const title = s.mode === 'night'
-      ? `Noite de ${dateTxt(s.start)}`
+      ? `Noite de ${dateTxt(nightDay(s.start))}`
       : `Cochilo de ${dateTxt(s.start)}, ${hm(s.start)}`;
     const wakeStage = sum.endStage ? STAGE_AT[sum.endStage] : null;
     const alarmAt = s.alarm ? s.alarm.at : s.end;
@@ -1349,8 +1849,8 @@ const UI = {
     if (s.mode === 'night' && s.wakeBy && s.alarm && (s.alarm.reason === 'move' || s.alarm.reason === 'light')) wakeLine += ` ${durTxt((s.wakeBy - s.alarm.at) / 60000)} antes do limite.`;
     const kssTxt = s.kss ? `Sonolência ao acordar (KSS): <b>${s.kss}</b>/9` : 'Sonolência ao acordar não registrada.';
     const sixth = `<div><dt>Ronco</dt><dd>${s.sensors && s.sensors.mic === false ? '—' : durShort(sum.snore)}</dd></div>`;
-    const legend = ['W', 'L', 'D', 'R'].map(k => `<span><i style="background:var(--st-${k.toLowerCase()})"></i>${STAGE_NAME[k]}<em>${durShort(sum[k])} · ${Math.round(sum[k] / tot * 100)}%</em></span>`).join('');
-    const stack = ['W', 'L', 'D', 'R'].filter(k => sum[k] > 0).map(k => `<i style="flex:${sum[k]};background:var(--st-${k.toLowerCase()})"></i>`).join('');
+    const legend = ['W', 'R', 'L', 'D'].map(k => `<span><i style="background:var(--st-${k.toLowerCase()})"></i>${STAGE_NAME[k]}<em>${durShort(sum[k])} · ${Math.round(sum[k] / tot * 100)}%</em></span>`).join('');
+    const stack = STACK.filter(k => sum[k] > 0).map(k => `<i style="flex:${sum[k]};background:var(--st-${k.toLowerCase()})"></i>`).join('');
     const cyc = sum.cyclesDone + (sum.lastCycleMin >= 45 ? 1 : 0);
     $('#reportIn').innerHTML = `
       <div class="rp-head"><button class="btn-ghost" id="rpBack">← Voltar</button>${s.example ? '<span class="tag ex">Exemplo</span>' : ''}</div>
@@ -1367,6 +1867,7 @@ const UI = {
       <canvas class="hypno" id="rpHypno" aria-label="Hipnograma estimado da sessão"></canvas>
       <div class="stack">${stack}</div>
       <div class="legend">${legend}</div>
+      ${reportAnalysis(s)}
       <div class="wake-box">
         <p class="eyebrow">Despertar</p>
         <p>${wakeLine}</p>
@@ -1375,6 +1876,7 @@ const UI = {
       ${sum.gap > 1 ? `<p class="note" style="color:var(--danger)">${durTxt(sum.gap)} sem dados: a tela apagou ou o app saiu da frente.</p>` : ''}
       <p class="note">*Acordado depois de pegar no sono. Estágios estimados por movimento e som. O celular separa bem dormindo × acordado; profundo e REM são inferidos pelo padrão de ciclo e não substituem polissonografia.</p>
       <div class="actions">
+        <button class="btn-ghost" id="rpPdf">Baixar PDF</button>${canShareFiles() ? '<button class="btn-ghost" id="rpShare">Compartilhar</button>' : ''}
         ${s.example ? '' : '<button class="btn-ghost" id="rpCsv">Exportar CSV</button><button class="btn-ghost" id="rpDel" style="color:var(--danger)">Apagar</button>'}
       </div>`;
     this.show('#report');
@@ -1382,6 +1884,8 @@ const UI = {
     requestAnimationFrame(() => drawHypno($('#rpHypno'), s, sc, false));
     $('#rpBack').onclick = () => this.hide('#report');
     const csv = $('#rpCsv'); if (csv) csv.onclick = () => exportCSV(s, sc);
+    $('#rpPdf').onclick = e => busy(e.currentTarget, () => nightPdf(s, false));
+    const sh = $('#rpShare'); if (sh) sh.onclick = e => busy(e.currentTarget, () => nightPdf(s, true));
     const del = $('#rpDel');
     if (del) {
       let armed = false, t = null;
@@ -1411,7 +1915,7 @@ function nightCard(s) {
   const b = document.createElement('button');
   b.className = 'card night-card';
   b.innerHTML = `
-    <div class="night-meta"><span><b>${s.mode === 'night' ? dateTxt(s.start) : 'Cochilo · ' + dateTxt(s.start)}</b> <span class="dim">${hm(s.start)}–${hm(s.end)}</span></span>${s.example ? '<span class="tag ex">Exemplo</span>' : `<span class="tag">${s.mode === 'night' ? 'noite' : s.napMin + ' min'}</span>`}</div>
+    <div class="night-meta"><span><b>${s.mode === 'night' ? dateTxt(nightDay(s.start)) : 'Cochilo · ' + dateTxt(s.start)}</b> <span class="dim">${hm(s.start)}–${hm(s.end)}</span></span>${s.example ? '<span class="tag ex">Exemplo</span>' : `<span class="tag">${s.mode === 'night' ? 'noite' : s.napMin + ' min'}</span>`}</div>
     <canvas aria-hidden="true"></canvas>
     <div class="night-meta dim"><span>${durTxt(sum.tst)} de sono${!sum.endStage ? '' : sum.endStage === 'W' ? ' · já acordado no fim' : ' · acordou ' + STAGE_AT[sum.endStage]}</span><span>${s.kss ? 'KSS ' + s.kss : ''}</span></div>`;
   b.onclick = () => UI.showReport(s);
@@ -1428,7 +1932,186 @@ function renderNap() {
   const now = Date.now(), m = settings.napMin;
   $('#napLine').innerHTML = `Se você pegar no sono em uns 5 min, acordo por volta de <b>${hm(now + (5 + m) * 60000)}</b>. No máximo às ${hm(now + (m + 25) * 60000)}.`;
 }
+/* ---------------- evolução e análise ---------------- */
+const esc = t => String(t).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+const canShareFiles = () => { try { return !!(navigator.canShare && navigator.canShare({ files: [new File([''], 'x.pdf', { type: 'application/pdf' })] })); } catch (e) { return false; } };
+const localDate = ms => { const d = new Date(ms); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+async function busy(btn, fn) {
+  if (btn.disabled) return;
+  const t = btn.textContent; btn.disabled = true; btn.textContent = 'Gerando…';
+  try { await fn(); } catch (e) { toast('Não consegui gerar o PDF neste navegador.'); } finally { btn.disabled = false; btn.textContent = t; }
+}
+const statCache = new Map();
+function statsOf(s) {
+  const key = `${s.id}:${s.end}:${s.kss || 0}:${s.epochs.length}`;
+  let v = statCache.get(key);
+  if (!v) { v = Core.Analysis.nightStats(s, scoreSession(s)); v.sess = s; v.example = !!s.example; statCache.set(key, v); }
+  return v;
+}
+const realNights = () => loadSessions().filter(s => s.mode === 'night').map(statsOf).filter(n => n.tst >= 60);
+let EXAMPLE_NIGHTS = null;
+function exampleNights() { // marcadas como exemplo; nunca apresentadas como dados seus
+  if (EXAMPLE_NIGHTS) return EXAMPLE_NIGHTS;
+  const T = [392, 445, 368, 421, 456, 402, 430], W = [12, 6, 18, 8, 5, 14, 9], LAT = [18, 12, 26, 15, 9, 22, 14], K = [5, 3, 6, 4, 3, 5, 4], OFF = [35, -10, 70, 0, -20, 45, 5];
+  const base = new Date(); base.setHours(23, 0, 0, 0);
+  EXAMPLE_NIGHTS = T.map((t, i) => {
+    const start = base.getTime() - (7 - i) * 86400000 + OFF[i] * 60000, D = Math.round(t * .21), R = Math.round(t * .22);
+    const end = start + (t + W[i] + LAT[i]) * 60000, onset = start + LAT[i] * 60000, md = new Date((onset + end) / 2);
+    return {
+      id: 'ex' + i, example: true, mode: 'night', start, end, onset, wakeAt: end, tst: t, inBed: t + W[i] + LAT[i], latency: LAT[i], waso: W[i],
+      W: W[i], D, R, L: t - D - R, eff: t / (t + W[i] + LAT[i]), kss: K[i], snore: 0, mic: true, reason: i % 3 ? 'move' : 'limit', cycles: 4, gap: 0,
+      mid: ((md.getHours() * 60 + md.getMinutes()) - 1080 + 1440) % 1440, daySleep: false
+    };
+  }).reverse();
+  return EXAMPLE_NIGHTS;
+}
+function trendData() {
+  const real = realNights(), ex = real.length < 2, all = ex ? exampleNights() : real;
+  return { all, ex, list: all.slice(0, settings.range || 7).reverse() };
+}
+const TR = { list: [], ex: false, sel: null, hitsS: [], hitsL: [] };
+function drawTrend() {
+  const P = screenPal();
+  const fs = fitCanvas($('#stackCv')); if (fs) TR.hitsS = paintStack(fs.c, 0, 0, fs.W, fs.H, TR.list, P, { sel: TR.sel });
+  const fl = fitCanvas($('#lineCv')); if (fl) TR.hitsL = paintLine(fl.c, 0, 0, fl.W, fl.H, TR.list, settings.metric, P, { sel: TR.sel });
+}
+function renderTrend() {
+  const d = trendData(); TR.list = d.list; TR.ex = d.ex;
+  $('#trendHint').textContent = d.ex ? 'Exemplo. Seu gráfico começa a partir da segunda noite registrada.' : `${TR.list.length} ${TR.list.length === 1 ? 'noite' : 'noites'} · toque numa barra para ver os números`;
+  const avg = k => { const v = TR.list.map(n => n[k]).filter(x => x != null && !isNaN(x)); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+  $('#trendKpis').innerHTML = [['Sono médio', avg('tst')], ['REM médio', avg('R')], ['Profundo médio', avg('D')]]
+    .map(([l, v]) => `<div><dt>${l}</dt><dd>${v == null ? '—' : durShort(v)}</dd></div>`).join('');
+  $('#stackLegend').innerHTML = ['W', 'R', 'L', 'D'].map(k => `<span><i style="background:var(--st-${k.toLowerCase()})"></i>${STAGE_SHORT[k]}</span>`).join('') + '<span><i class="dash"></i>Meta 7 h</span>';
+  const rows = TR.list.slice().reverse().map(n => `<tr><td>${dateTxt(nightDay(n.start))}</td><td>${durShort(n.tst)}</td><td>${durShort(n.R)}</td><td>${durShort(n.D)}</td><td>${durShort(n.L)}</td><td>${durShort(n.waso)}</td><td>${n.latency == null ? '—' : durShort(n.latency)}</td><td>${Math.round(n.eff * 100)}%</td><td>${n.kss || '—'}</td></tr>`).join('');
+  $('#trendTable').innerHTML = `<thead><tr><th>Noite</th><th>Sono</th><th>REM</th><th>Prof.</th><th>Leve</th><th>Acord.</th><th>Lat.</th><th>Efic.</th><th>KSS</th></tr></thead><tbody>${rows}</tbody>`;
+  $('#periodShare').hidden = !canShareFiles();
+  $$('.ctip').forEach(t => { t.hidden = true; });
+  TR.sel = null;
+  drawTrend();
+}
+function hideTips() {
+  $$('.ctip').forEach(t => { t.hidden = true; });
+  if (TR.sel != null) { TR.sel = null; drawTrend(); }
+}
+function showTip(wrap, h, x) {
+  const n = TR.list[h.i], tip = $('.ctip', wrap); if (!n) return;
+  $$('.ctip').forEach(t => { if (t !== tip) t.hidden = true; });
+  const r = (col, lab, v) => `<div class="r">${col ? `<i style="background:var(--st-${col})"></i>` : ''}${lab}<em>${v}</em></div>`;
+  tip.innerHTML = `<b>${dateTxt(nightDay(n.start))}${n.example ? ' · exemplo' : ''}</b>` +
+    r('', 'Sono total', durShort(n.tst)) + r('r', 'REM', durShort(n.R)) + r('d', 'Profundo', durShort(n.D)) + r('l', 'Leve', durShort(n.L)) + r('w', 'Acordado', durShort(n.waso)) +
+    r('', 'Latência', n.latency == null ? '—' : durShort(n.latency)) + r('', 'Sonolência', n.kss ? `${n.kss}/9` : '—') +
+    (n.sess ? '<button type="button">Abrir esta noite</button>' : '');
+  tip.hidden = false;
+  const tw = tip.offsetWidth, right = x + 14 + tw <= wrap.clientWidth;
+  tip.style.left = Math.max(0, right ? x + 14 : x - tw - 14) + 'px';
+  const b = $('button', tip); if (b) b.onclick = () => { hideTips(); UI.showReport(n.sess); };
+}
+function bindChart(wrapSel, key) {
+  const wrap = $(wrapSel), cv = $('canvas', wrap);
+  const at = e => { const rc = cv.getBoundingClientRect(), x = e.clientX - rc.left; return { x, h: TR[key].find(z => x >= z.x0 && x < z.x1) }; };
+  cv.addEventListener('pointerdown', e => { const { x, h } = at(e); if (!h) { hideTips(); return; } TR.sel = h.i; drawTrend(); showTip(wrap, h, x); });
+  cv.addEventListener('pointermove', e => { if (e.pointerType !== 'mouse') return; const { x, h } = at(e); if (!h) return; if (TR.sel !== h.i) { TR.sel = h.i; drawTrend(); } showTip(wrap, h, x); });
+  wrap.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') hideTips(); });
+}
+bindChart('#stackWrap', 'hitsS');
+bindChart('#lineWrap', 'hitsL');
+document.addEventListener('pointerdown', e => { if (!e.target.closest('.chart-wrap')) hideTips(); });
+
+function tipsHtml(tips) {
+  const tag = l => l === 'alerta' ? 'Prioridade' : l === 'ok' ? 'Em dia' : 'Atenção';
+  return tips.map(t => `<div class="tipx lvl-${t.level}"><span class="lvl">${tag(t.level)}</span><h3>${esc(t.title)}</h3><p>${esc(t.why)}</p>
+    <ul>${t.do.map(d => `<li>${esc(d)}</li>`).join('')}</ul>
+    <p class="src">Fonte: ${t.ref.map(r => `<a href="https://doi.org/${r.doi}" target="_blank" rel="noopener">${esc(r.t)}</a>`).join(' · ')}</p></div>`).join('');
+}
+function renderAnalysis() {
+  const d = trendData(), A = Core.Analysis.analyze(d.all);
+  $('#analysisCard').innerHTML = `<div class="row"><p class="eyebrow">Análise · últimas ${Math.min(7, A.nights)} noites</p>${d.ex ? '<span class="tag ex">Exemplo</span>' : ''}</div>` +
+    (A.tips.length ? `<div class="tips">${tipsHtml(A.tips)}</div>` : '<p class="sub">Com 3 noites registradas eu monto a análise do seu padrão. Até lá, cada relatório traz a análise da própria noite.</p>');
+}
+function analysisFor(s) {
+  const st = statsOf(s), pool = s.example ? exampleNights() : realNights();
+  const all = pool.some(x => x.id === st.id) ? pool : [st].concat(pool);
+  return { st, all, A: Core.Analysis.analyze(all, st) };
+}
+function reportAnalysis(s) {
+  if (s.mode !== 'night') return '';
+  const { A } = analysisFor(s);
+  return `<div style="display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--line);padding-top:14px">
+    <p class="eyebrow">Análise da noite</p>
+    ${A.facts.length ? `<ul class="facts">${A.facts.map(f => `<li>${esc(f)}</li>`).join('')}</ul>` : ''}
+    ${A.tips.length ? `<div class="tips">${tipsHtml(A.tips.slice(0, 3))}</div>` : ''}</div>`;
+}
+
+/* ---------------- PDFs ---------------- */
+async function nightPdf(s, share) {
+  await fontsReady();
+  const sc = scoreSession(s), sum = Core.summarize(s, sc), tot = Math.max(1, sum.W + sum.L + sum.D + sum.R);
+  const { all, A } = s.mode === 'night' ? analysisFor(s) : { all: [], A: null };
+  const doc = new Doc(s.example ? 'Relatório de sono · exemplo' : 'Relatório de sono');
+  doc.eyebrow(s.mode === 'night' ? `Noite de ${dateTxt(nightDay(s.start))}` : `Cochilo de ${dateTxt(s.start)}, ${hm(s.start)}`);
+  doc.text(`${durTxt(sum.tst)} de sono`, { size: 60, weight: 300, font: PRINT.display, lh: 72 });
+  doc.text(`Na cama ${hm(s.start)}–${hm(s.end)} · ${durTxt(sum.inBed)}`, { size: 21, color: PRINT.muted, after: 22 });
+  const cyc = sum.cyclesDone + (sum.lastCycleMin >= 45 ? 1 : 0);
+  doc.stats([['Latência', sum.latency == null ? '—' : durShort(sum.latency)], ['Eficiência', `${Math.round(sum.eff * 100)}%`], ['Ciclos', s.mode === 'night' ? '≈ ' + cyc : '—'],
+    ['Acordado*', durShort(sum.waso)], ['Ronco', s.sensors && s.sensors.mic === false ? '—' : durShort(sum.snore)], ['Sonolência', s.kss ? `${s.kss}/9` : '—']]);
+  doc.chart(340, (c, x, y, w, h) => paintHypno(c, x, y, w, h, s, sc, false, PRINT, 2));
+  doc.table(['Estágio', 'Tempo', '%'], ['W', 'R', 'L', 'D'].map(k => [{ color: PRINT[k], text: STAGE_NAME[k] }, durShort(sum[k]), `${Math.round(sum[k] / tot * 100)}%`]), [.62, .22, .16]);
+  if (s.alarm) {
+    doc.eyebrow('Despertar');
+    let w = `${hm(s.alarm.at)} · ${REASON[s.alarm.reason] || ''}`;
+    if (s.mode === 'night' && s.wakeBy && (s.alarm.reason === 'move' || s.alarm.reason === 'light')) w += ` ${durTxt((s.wakeBy - s.alarm.at) / 60000)} antes do limite.`;
+    doc.text(w, { size: 20, after: 18 });
+  }
+  if (A) {
+    doc.eyebrow('Análise da noite');
+    A.facts.forEach(f => doc.text('•  ' + f, { size: 19, indent: 4, after: 2 }));
+    doc.gap(14);
+    doc.tips(A.tips.slice(0, 3));
+  }
+  if (all.length >= 2) {
+    const list = all.slice(0, 7).reverse();
+    doc.eyebrow(s.example ? 'Últimas noites · exemplo' : 'Últimas noites');
+    doc.chart(320, (c, x, y, w, h) => paintStack(c, x, y, w, h, list, PRINT, { k: 2 }));
+    doc.legend(['W', 'R', 'L', 'D'].map(k => [PRINT[k], STAGE_SHORT[k]]));
+  }
+  doc.text('*Acordado depois de pegar no sono. Profundo e REM são inferidos pela posição no ciclo.', { size: 15, color: PRINT.faint });
+  await deliver(await doc.blob(), `mare-${s.mode === 'night' ? 'noite' : 'cochilo'}-${localDate(s.mode === 'night' ? nightDay(s.start) : s.start)}.pdf`, share);
+}
+async function periodPdf(share) {
+  await fontsReady();
+  const d = trendData(), list = d.list, A = Core.Analysis.analyze(d.all), P = A.period;
+  if (!list.length) { toast('Ainda não há noites para o relatório.'); return; }
+  const doc = new Doc(d.ex ? 'Relatório de sono · exemplo' : 'Relatório de sono');
+  doc.eyebrow(`${list.length} ${list.length === 1 ? 'noite' : 'noites'}${d.ex ? ' · exemplo' : ''}`);
+  doc.text(`${dateTxt(nightDay(list[0].start))} a ${dateTxt(nightDay(list[list.length - 1].start))}`, { size: 46, weight: 300, font: PRINT.display, lh: 58, after: 18 });
+  const avg = k => { const v = list.map(n => n[k]).filter(x => x != null && !isNaN(x)); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+  const lat = list.map(n => n.latency).filter(v => v != null).sort((a, b) => a - b);
+  doc.stats([['Sono médio', durShort(avg('tst'))], ['REM médio', durShort(avg('R'))], ['Profundo médio', durShort(avg('D'))],
+    ['Latência (mediana)', lat.length ? durShort(lat[lat.length >> 1]) : '—'], ['Eficiência', `${Math.round(avg('eff') * 100)}%`],
+    ['Regularidade', P.regularity == null ? '—' : `± ${Math.round(P.regularity)} min`]]);
+  doc.eyebrow('Tempo em cada estágio');
+  doc.chart(420, (c, x, y, w, h) => paintStack(c, x, y, w, h, list, PRINT, { k: 2 }));
+  doc.legend(['W', 'R', 'L', 'D'].map(k => [PRINT[k], STAGE_SHORT[k]]).concat([[PRINT.ink, 'Meta 7 h (tracejado)']]));
+  const pair = (a, b) => doc.chart(300, (c, x, y, w, h) => {
+    const gw = (w - 36) / 2;
+    [[a, x], [b, x + gw + 36]].forEach(([key, xx]) => {
+      c.fillStyle = PRINT.ink; c.font = `700 19px ${PRINT.body}`; c.textBaseline = 'alphabetic'; c.fillText(METRICS[key].label, xx, y + 20);
+      paintLine(c, xx, y + 34, gw, h - 34, list, key, PRINT, { k: 2 });
+    });
+  });
+  pair('tst', 'R'); pair('D', 'latency');
+  if (A.tips.length) { doc.eyebrow('Análise e o que melhorar'); doc.tips(A.tips); }
+  doc.eyebrow('Noite a noite');
+  doc.table(['Noite', 'Deitou', 'Acordou', 'Sono', 'REM', 'Prof.', 'Lat.', 'Efic.', 'KSS'],
+    list.slice().reverse().map(n => [dateTxt(nightDay(n.start)), hm(n.start), hm(n.wakeAt), durShort(n.tst), durShort(n.R), durShort(n.D), n.latency == null ? '—' : durShort(n.latency), `${Math.round(n.eff * 100)}%`, n.kss || '—']),
+    [.2, .1, .1, .11, .1, .1, .1, .09, .1]);
+  await deliver(await doc.blob(), `mare-periodo-${localDate(nightDay(list[0].start))}_a_${localDate(nightDay(list[list.length - 1].start))}.pdf`, share);
+}
+$('#periodPdf').onclick = e => busy(e.currentTarget, () => periodPdf(false));
+$('#periodShare').onclick = e => busy(e.currentTarget, () => periodPdf(true));
+
 function renderNights() {
+  renderTrend(); renderAnalysis();
   const list = loadSessions(), box = $('#nights'); box.innerHTML = '';
   if (!list.length) {
     box.appendChild(nightCard(SAMPLE));
@@ -1501,6 +2184,8 @@ const rampSw = $('#rampSw');
 rampSw.setAttribute('aria-checked', String(settings.ramp));
 rampSw.onclick = () => { settings.ramp = !settings.ramp; rampSw.setAttribute('aria-checked', String(settings.ramp)); saveSettings(); };
 bindPressed($('#napList'), 'napMin', renderNap);
+bindPressed($('#rangeSeg'), 'range', () => renderTrend());
+bindPressed($('#metricSeg'), 'metric', () => drawTrend());
 const micSw = $('#micSw');
 micSw.setAttribute('aria-checked', String(settings.mic));
 micSw.onclick = () => { settings.mic = !settings.mic; micSw.setAttribute('aria-checked', String(settings.mic)); saveSettings(); };

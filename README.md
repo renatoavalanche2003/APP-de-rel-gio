@@ -8,7 +8,9 @@ Acompanha o sono pelo celular e acorda você no sono leve, dentro de uma janela 
 
 - **Noite:** você define "acordar até" e uma janela de 10–45 min. Dentro da janela, o alarme toca no primeiro movimento de sono leve; sem movimento, toca no horário limite.
 - **Cochilo:** 10, 20 ou 90 min, contados a partir de quando você pega no sono.
-- **Relatório:** hipnograma, latência, eficiência, ciclos, ronco e sonolência ao acordar (escala de Karolinska).
+- **Relatório:** hipnograma, latência, eficiência, ciclos, ronco e sonolência ao acordar (escala de Karolinska), com análise da noite e PDF para baixar.
+- **Evolução:** gráfico que cresce a cada noite com o tempo em cada estágio (em horas) e linhas de sono total, REM, profundo, latência, tempo acordado, eficiência e sonolência. Tem PDF do período.
+- **Análise e dicas:** padrões das últimas 7 noites (duração, regularidade, latência, fragmentação, ronco, despertar, sono diurno), cada dica com mecanismo, o que fazer e a fonte.
 
 ## Como usar à noite
 

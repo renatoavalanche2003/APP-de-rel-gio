@@ -253,4 +253,166 @@ const Core = (() => {
   return { EPOCH_S, EPM, T, act, isMove, isTwitch, score, summarize, sampleNight, findOnset, dScores };
 })();
 
+/* Análise do sono: números por noite, padrão do período e dicas priorizadas com mecanismo e referência. */
+const Analysis = (() => {
+  const REF = {
+    watson: { t: 'Watson et al. Sleep 2015 · consenso AASM/SRS', doi: '10.5665/sleep.4716' },
+    windred: { t: 'Windred et al. Sleep 2024', doi: '10.1093/sleep/zsad253' },
+    qaseem: { t: 'Qaseem et al. Ann Intern Med 2016 · diretriz ACP', doi: '10.7326/M15-2175' },
+    drake: { t: 'Drake et al. J Clin Sleep Med 2013', doi: '10.5664/jcsm.3170' },
+    ebrahim: { t: 'Ebrahim et al. Alcohol Clin Exp Res 2013', doi: '10.1111/acer.12006' },
+    kredlow: { t: 'Kredlow et al. J Behav Med 2015', doi: '10.1007/s10865-015-9617-6' },
+    ravesloot: { t: 'Ravesloot et al. Sleep Breath 2013', doi: '10.1007/s11325-012-0683-5' },
+    liira: { t: 'Liira et al. Cochrane 2014', doi: '10.1002/14651858.CD009776.pub2' },
+    hilditch: { t: 'Hilditch & McHill. Nat Sci Sleep 2019', doi: '10.2147/NSS.S188911' },
+    tassi: { t: 'Tassi & Muzet. Sleep Med Rev 2000', doi: '10.1053/smrv.2000.0098' }
+  };
+  const pad = n => String(n).padStart(2, '0');
+  const dur = m => { m = Math.max(0, Math.round(m)); const h = Math.floor(m / 60), r = m % 60; return h ? `${h} h ${pad(r)} min` : `${r} min`; };
+  const clock = ms => { const d = new Date(ms); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+  const mean = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : NaN;
+  const median = a => { if (!a.length) return NaN; const s = a.slice().sort((x, y) => x - y), k = s.length >> 1; return s.length % 2 ? s[k] : (s[k - 1] + s[k]) / 2; };
+  const sd = a => { if (a.length < 2) return 0; const m = mean(a); return Math.sqrt(mean(a.map(x => (x - m) ** 2))); };
+  const sinceSix = ms => { const d = new Date(ms); return ((d.getHours() * 60 + d.getMinutes()) - 18 * 60 + 1440) % 1440; }; // minutos desde 18:00
+
+  function nightStats(sess, sc) {
+    sc = sc || Core.score(sess.epochs, { mode: sess.mode });
+    const s = Core.summarize(sess, sc), onset = sess.start + (s.latency || 0) * 60000, end = sess.end;
+    const wakeAt = sess.alarm && !sess.example ? Math.min(end, sess.alarm.at) : end;
+    return {
+      id: sess.id, start: sess.start, end, onset, wakeAt, mode: sess.mode,
+      tst: s.tst, inBed: s.inBed, latency: s.latency, eff: s.eff, waso: s.waso,
+      W: s.W, L: s.L, D: s.D, R: s.R, gap: s.gap, cycles: s.cyclesDone + (s.lastCycleMin >= 45 ? 1 : 0),
+      snore: s.snore, mic: !(sess.sensors && sess.sensors.mic === false), kss: sess.kss || null,
+      reason: sess.alarm ? sess.alarm.reason : null, endStage: s.endStage,
+      mid: sinceSix((onset + wakeAt) / 2), daySleep: (() => { const h = new Date(onset).getHours(); return h >= 6 && h < 15; })()
+    };
+  }
+
+  /** nights: estatísticas de noites (mais recente primeiro). focus: a noite do relatório, se houver. */
+  function analyze(nights, focus) {
+    const N = nights.filter(n => n.mode === 'night' && n.tst >= 60).slice(0, 14), tips = [];
+    const last7 = N.slice(0, 7), n = last7.length;
+    const avg = k => mean(last7.map(x => x[k]).filter(v => v != null && !isNaN(v)));
+    const P = {
+      n, tst: avg('tst'), R: avg('R'), D: avg('D'), L: avg('L'), latency: median(last7.map(x => x.latency).filter(v => v != null)),
+      eff: avg('eff'), waso: avg('waso'), regularity: n >= 3 ? sd(last7.map(x => x.mid)) : null,
+      kss: avg('kss'), snoreNights: last7.filter(x => x.mic && x.snore >= 20).length, micNights: last7.filter(x => x.mic).length,
+      wake: n ? median(last7.map(x => sinceSix(x.wakeAt))) : null
+    };
+    const wakeClock = P.wake != null ? (() => { const m = (P.wake + 18 * 60) % 1440; return pad(Math.floor(m / 60)) + ':' + pad(Math.round(m % 60)); })() : null;
+    const bedFor = (wakeMin, needMin) => { const m = ((wakeMin + 18 * 60 - needMin) % 1440 + 1440) % 1440; return pad(Math.floor(m / 60)) + ':' + pad(Math.round(m % 60) % 60); };
+    const add = (o) => tips.push(o);
+    const enough = n >= 3;
+
+    // 1. duração
+    if (enough && P.tst < 420) {
+      const lat = isNaN(P.latency) ? 15 : Math.min(30, P.latency);
+      add({
+        id: 'curto', prio: P.tst < 360 ? 1 : 2, level: P.tst < 360 ? 'alerta' : 'atencao',
+        title: `Média de ${dur(P.tst)} de sono, abaixo das 7 h recomendadas`,
+        why: 'Abaixo de 7 h por noite, a pressão de sono (adenosina) que sobra de um dia se soma à do seguinte, e atenção, humor e metabolismo pioram de forma dose-dependente. O REM se concentra no último terço da noite: encurtar o fim da noite corta justamente ele.',
+        do: [wakeClock ? `Para acordar às ${wakeClock} com 7 h 30 min de sono, deite por volta de ${bedFor(P.wake, 450 + lat)}.` : 'Some 7 h 30 min de sono ao tempo que você leva para dormir e conte de trás para frente a partir do horário de acordar.',
+             'Antecipe o horário de deitar em 15–30 min por semana, mantendo fixo o de acordar.'],
+        ref: [REF.watson]
+      });
+    }
+    // 2. regularidade
+    if (n >= 4 && P.regularity > 60) {
+      add({
+        id: 'irregular', prio: P.regularity > 90 ? 1 : 2, level: 'atencao',
+        title: `Seus horários variam cerca de ${Math.round(P.regularity)} min de uma noite para outra`,
+        why: 'O relógio central (núcleo supraquiasmático) se acerta pela luz e pela rotina. Mudar o horário todo dia funciona como um jet lag pequeno e repetido. Numa coorte de 60 mil pessoas medidas por acelerômetro, a regularidade previu mortalidade melhor que a duração do sono.',
+        do: ['Fixe o horário de acordar, inclusive nas folgas (variação de até 30–60 min).', 'Pegue luz forte logo ao acordar e reduza a luz nas 2 h antes de deitar.'],
+        ref: [REF.windred]
+      });
+    }
+    // 3. latência longa
+    const latF = focus && focus.latency != null && focus.latency > 45;
+    if ((enough && P.latency > 30) || latF) {
+      add({
+        id: 'latencia', prio: 2, level: 'atencao',
+        title: enough && P.latency > 30 ? `Você leva cerca de ${dur(P.latency)} para pegar no sono` : `Nesta noite você levou ${dur(focus.latency)} para pegar no sono`,
+        why: 'Ficar acordado na cama ensina o cérebro a associar cama com vigília e mantém o sistema de alerta ligado. A terapia cognitivo-comportamental para insônia (TCC-I) é o tratamento de primeira linha justamente por quebrar essa associação. Cafeína ainda ativa 6 h antes de deitar reduziu o sono de forma mensurável.',
+        do: ['Sem sono em uns 20 min, saia da cama, faça algo calmo com pouca luz e volte quando sentir sono.', 'Use a cama só para dormir e mantenha o horário de acordar fixo.', 'Última cafeína pelo menos 6 h antes de deitar.'],
+        ref: [REF.qaseem, REF.drake]
+      });
+    }
+    // 4. fragmentação
+    const wasoF = focus && focus.waso > 45;
+    if ((enough && (P.eff < 0.85 || P.waso > 30)) || wasoF) {
+      add({
+        id: 'fragmentado', prio: 2, level: 'atencao',
+        title: enough && (P.eff < 0.85 || P.waso > 30) ? `Sono interrompido: média de ${dur(P.waso)} acordado depois de dormir` : `Nesta noite você ficou ${dur(focus.waso)} acordado depois de pegar no sono`,
+        why: 'Cada despertar reinicia parte do ciclo e reduz o tempo em N3 e REM. Causas frequentes: cafeína tarde, álcool (consolida a primeira metade da noite e fragmenta a segunda), quarto quente ou barulhento e urinar de madrugada. Exercício regular reduz de forma moderada o tempo acordado durante a noite.',
+        do: ['Corte cafeína 6 h antes e álcool 3–4 h antes de deitar.', 'Quarto fresco, escuro e silencioso; menos líquido nas 2 h finais.', 'Exercício regular, de preferência terminando algumas horas antes de deitar.'],
+        ref: [REF.ebrahim, REF.kredlow]
+      });
+    }
+    // 5. ronco
+    if (P.micNights >= 3 && P.snoreNights >= 3) {
+      const sn = mean(last7.filter(x => x.mic).map(x => x.snore));
+      add({
+        id: 'ronco', prio: sn > 60 ? 1 : 3, level: sn > 60 ? 'alerta' : 'atencao',
+        title: `Ronco em ${P.snoreNights} de ${P.micNights} noites (média de ${dur(sn)})`,
+        why: 'No sono, o tônus dos dilatadores da faringe (como o genioglosso) cai; de barriga para cima, a gravidade leva língua e palato para trás e a via aérea vibra ou colapsa. Álcool reduz ainda mais esse tônus. Em média, 56% das pessoas com apneia obstrutiva têm apneia dependente da posição.',
+        do: ['Durma de lado. Um travesseiro nas costas ajuda a não virar.', 'Evite álcool e sedativos à noite.', 'Pausas na respiração percebidas por alguém, engasgos, sonolência de dia ou pressão alta pedem avaliação de apneia (STOP-Bang e polissonografia).'],
+        ref: [REF.ravesloot]
+      });
+    }
+    // 6. acordar grogue
+    const kssList = last7.filter(x => x.kss);
+    const kHigh = kssList.filter(x => x.kss >= 7).length;
+    const focusLimit = focus && focus.reason === 'limit';
+    if ((kssList.length >= 3 && mean(kssList.map(x => x.kss)) >= 6.5) || (focus && focus.kss >= 7) || focusLimit) {
+      const lim = kssList.filter(x => x.reason === 'limit').map(x => x.kss), mov = kssList.filter(x => x.reason === 'move' || x.reason === 'light').map(x => x.kss);
+      let title = focusLimit ? 'O alarme tocou no horário limite, sem movimento antes' : `Você tem acordado sonolento (escala de sonolência ≥ 7 em ${kHigh} noites)`;
+      if (!focusLimit && focus && focus.kss >= 7) title = `Você acordou bem sonolento (escala de sonolência ${focus.kss}/9)`;
+      const extra = lim.length >= 2 && mov.length >= 2 ? ` Nas suas noites, a média foi ${mean(mov).toFixed(1).replace('.', ',')} acordando pelo movimento e ${mean(lim).toFixed(1).replace('.', ',')} pelo limite.` : '';
+      add({
+        id: 'inercia', prio: focusLimit ? 2 : 3, level: 'atencao', title,
+        why: 'Acordar de N3 produz mais inércia do sono que acordar de N1 ou N2; o REM fica no meio. A inércia piora com dívida de sono e quando você acorda perto do vale da temperatura corporal, de madrugada.' + extra,
+        do: ['Aumente a janela do alarme para 30–45 min: sobe a chance de pegar um movimento de sono leve.', 'Ao acordar, levante, pegue luz forte e, se quiser, tome a cafeína logo cedo.', 'Se continuar grogue mesmo acordando em sono leve, o problema provável é dormir pouco, não a hora do alarme.'],
+        ref: [REF.tassi, REF.hilditch]
+      });
+    }
+    // 7. sono diurno (plantão)
+    const day = N.slice(0, 7).filter(x => x.daySleep && x.tst >= 180);
+    if (day.length) {
+      add({
+        id: 'turno', prio: 2, level: 'atencao',
+        title: day.length === 1 ? 'Uma das suas noites foi dormida de dia' : `${day.length} das suas últimas noites foram dormidas de dia`,
+        why: 'De dia o relógio circadiano trabalha contra o sono: a temperatura e o cortisol sobem e a melatonina fica baixa, então o sono diurno tende a ser mais curto e fragmentado. Em revisão Cochrane, cochilo antes do plantão somado a cafeína reduziu a sonolência no turno; melatonina após o plantão acrescentou cerca de 24 min ao sono diurno, com evidência de baixa qualidade.',
+        do: ['Antes de um plantão noturno, cochile de 20 a 90 min no fim da tarde.', 'Na volta, óculos escuros; em casa, quarto totalmente escuro e ruído branco ou protetor auricular.', 'Mantenha um "sono-âncora": um bloco de umas 4 h no mesmo horário todos os dias, de plantão ou de folga.'],
+        ref: [REF.liira]
+      });
+    }
+    // 8. tudo certo
+    if (enough && !tips.length) {
+      add({
+        id: 'bom', prio: 4, level: 'ok',
+        title: 'Noites dentro do esperado',
+        why: `Média de ${dur(P.tst)} de sono${P.regularity != null ? (P.regularity < 15 ? ', horários quase sem variar' : `, horários variando cerca de ${Math.round(P.regularity)} min`) : ''} e pouco tempo acordado durante a noite.`,
+        do: ['Mantenha o horário de acordar fixo, inclusive nas folgas: é o que mais protege esse padrão.'],
+        ref: [REF.watson, REF.windred]
+      });
+    }
+    tips.sort((a, b) => a.prio - b.prio);
+
+    // fatos da noite em foco
+    const facts = [];
+    if (focus) {
+      const cmp = (v, a, unit) => (n >= 3 && !isNaN(a)) ? ` (sua média: ${unit(a)})` : '';
+      facts.push(`Sono total: ${dur(focus.tst)}${cmp(focus.tst, P.tst, dur)}.`);
+      if (focus.latency != null) facts.push(`Latência: ${dur(focus.latency)}${n >= 3 && !isNaN(P.latency) ? ` (costuma ser ${dur(P.latency)})` : ''}.`);
+      if (focus.R) facts.push(`REM provável: ${dur(focus.R)}${cmp(focus.R, P.R, dur)}; profundo provável: ${dur(focus.D)}${cmp(focus.D, P.D, dur)}.`);
+      if (focus.reason === 'move' || focus.reason === 'light') facts.push('O alarme pegou um movimento dentro da janela, como planejado.');
+    }
+    return { period: P, tips, facts, nights: N.length };
+  }
+
+  return { nightStats, analyze, REF, dur, clock };
+})();
+Core.Analysis = Analysis;
+
 if (typeof module !== 'undefined') module.exports = Core;
