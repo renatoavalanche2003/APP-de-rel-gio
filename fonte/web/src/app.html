@@ -110,6 +110,14 @@ details.card[open] summary::after{content:"–"}
 .tag{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line);border-radius:6px;padding:2px 6px;color:var(--muted)}
 .tag.ex{color:var(--st-w);border-color:rgba(242,198,109,.4)}
 .nights{display:flex;flex-direction:column;gap:12px}
+details.howto summary{cursor:pointer;color:var(--ember);font-size:15px;list-style:none}
+details.howto summary::-webkit-details-marker{display:none}
+details.howto[open] summary{margin-bottom:10px}
+details.howto .checklist{font-size:15px}
+label.btn-ghost{display:inline-flex;align-items:center;cursor:pointer}
+.cmp{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:12px}
+.cmp p{margin:0}
+.hypno-mini{width:100%;height:56px;display:block}
 .insight{background:transparent;border:1px dashed var(--line);border-radius:14px;padding:14px;font-size:15px;margin:0}
 
 .prose{display:flex;flex-direction:column;gap:6px;max-width:65ch}
@@ -255,7 +263,7 @@ details.card[open] summary::after{content:"–"}
         <button class="btn-ghost" id="wNight">Começar a noite no relógio</button>
         <button class="btn-ghost" id="wImport">Importar sessões</button>
       </div>
-      <p class="note" id="wNote">Antes de conectar, abra o Maré no relógio: ele fica visível ao celular por 10 min. Ainda não instalou? <a href="Mare-relogio.apk" download>Baixe o app do relógio (APK)</a>.</p>
+      <p class="note" id="wNote">Para Galaxy Watch 4 ou mais novo, com o <a href="Mare-relogio.apk" download>app do relógio (APK)</a> instalado. Abra o Maré no relógio antes de conectar: ele fica visível por 10 min. Watch 3 ou mais antigo? Importe pelo Samsung Health na aba Noites.</p>
     </div>
 
     <details class="card">
@@ -298,6 +306,23 @@ details.card[open] summary::after{content:"–"}
 
   <!-- NOITES -->
   <section class="panel" id="p-noites" role="tabpanel" aria-labelledby="tab-noites" hidden>
+    <div class="card" id="shCard">
+      <div class="row">
+        <span><span class="lbl">Samsung Health</span><span class="hint" id="shStatus"></span></span>
+        <label class="btn-ghost" for="shFile" id="shBtn" role="button" tabindex="0">Importar</label>
+      </div>
+      <input type="file" id="shFile" accept=".zip,.csv,.json,application/zip,text/csv,application/json" multiple hidden>
+      <details class="howto">
+        <summary>Como exportar do Samsung Health</summary>
+        <ol class="checklist">
+          <li>No Samsung Health do celular: menu ☰ → Configurações → <b>Baixar dados pessoais</b> → Baixar. Em versões novas a opção pode estar em "Gerenciamento de dados".</li>
+          <li>Os arquivos vão para a pasta <b>Download/Samsung Health</b>, numa pasta com a data de hoje.</li>
+          <li>No app Meus Arquivos, segure essa pasta e toque em <b>Compactar</b>.</li>
+          <li>Aqui, toque em Importar e escolha o .zip. Também dá para escolher só os arquivos de sleep_stage e heart_rate.</li>
+        </ol>
+        <p class="note">Para ter FC minuto a minuto durante o sono, deixe a medição de frequência cardíaca do relógio em "Medir continuamente", nas configurações de frequência cardíaca do Samsung Health no relógio.</p>
+      </details>
+    </div>
     <div class="actions"><button class="btn-ghost" id="wImport2" hidden>Importar do relógio</button></div>
     <p class="insight" id="insight"></p>
     <div class="nights" id="nights"></div>
@@ -342,6 +367,8 @@ details.card[open] summary::after{content:"–"}
       <h2>Com o Galaxy Watch</h2>
       <p>O relógio acrescenta o que o celular não enxerga: o sistema nervoso autônomo. No N3 predomina o tônus vagal, e a frequência cardíaca fica no ponto mais baixo da noite e estável. No REM há surtos simpáticos: a FC sobe e oscila, com o corpo imóvel pela atonia. O Maré combina a posição no ciclo com a FC de cada época, normalizada pela sua própria noite: imóvel com FC baixa e estável pesa para profundo; imóvel com FC alta e oscilante, para REM.</p>
       <p>É melhor do que o celular no colchão, mas continua estimativa. Num estudo com 11 rastreadores comparados à polissonografia, o Galaxy Watch 5 entre eles, a concordância época a época variou bastante entre aparelhos, e os relógios tenderam a superestimar a eficiência do sono (Lee et al., 2023).</p>
+
+      <p>Relógios mais antigos, como o Galaxy Watch 3, não rodam o app do Maré. Nesse caso, o Maré importa do Samsung Health os estágios e a FC que o relógio registrou e coloca lado a lado com a estimativa do celular. A comparação mais útil é a do despertar: nas noites em que o alarme tocou pelo movimento, o relógio marcava sono leve?</p>
 
       <h2>Limites</h2>
       <ul>
@@ -918,16 +945,26 @@ const UI = {
     this.show('#kss');
   },
   showReport(s) {
-    const sc = Core.score(s.epochs, { mode: s.mode }), sum = Core.summarize(s, sc);
+    const sc = scoreSession(s), sum = Core.summarize(s, sc);
     const tot = Math.max(1, sum.W + sum.L + sum.D + sum.R);
+    const sh = s.source === 'samsung', ext = s.ext && !sh ? extStages(s) : null;
     const title = s.mode === 'night'
       ? `Noite de ${dateTxt(s.start)}`
       : `Cochilo de ${dateTxt(s.start)}, ${hm(s.start)}`;
     const wakeStage = sum.endStage ? STAGE_AT[sum.endStage] : null;
     const alarmAt = s.alarm ? s.alarm.at : s.end;
-    let wakeLine = `${hm(alarmAt)} · ${REASON[s.alarm ? s.alarm.reason : 'manual'] || ''}`;
+    let wakeLine = sh ? `Fim do sono registrado pelo relógio: ${hm(s.end)}.` : `${hm(alarmAt)} · ${REASON[s.alarm ? s.alarm.reason : 'manual'] || ''}`;
     if (s.mode === 'night' && s.wakeBy && s.alarm && (s.alarm.reason === 'move' || s.alarm.reason === 'light')) wakeLine += ` ${durTxt((s.wakeBy - s.alarm.at) / 60000)} antes do limite.`;
-    const kssTxt = s.kss ? `Sonolência ao acordar (KSS): <b>${s.kss}</b>/9` : 'Sonolência ao acordar não registrada.';
+    const kssTxt = sh ? '' : s.kss ? `Sonolência ao acordar (KSS): <b>${s.kss}</b>/9` : 'Sonolência ao acordar não registrada.';
+    let cmp = '';
+    if (ext) {
+      let same = 0, both = 0;
+      for (let i = 0; i < ext.length; i++) if (ext[i] !== '?' && sc.stage[i] !== '?') { both++; if (ext[i] === sc.stage[i]) same++; }
+      const atA = s.alarm ? Core.SH.stageAt(s.ext.stages, s.alarm.at) : null;
+      const atTxt = s.alarm ? (atA ? ` No despertar (${hm(s.alarm.at)}), o relógio marcava: <b>${STAGE_AT[atA]}</b>.` : ' O relógio não tinha registro no horário do despertar.') : '';
+      cmp = `<div class="cmp"><p class="eyebrow">Como o relógio viu · Samsung Health</p><canvas class="hypno-mini" id="rpExt" aria-label="Hipnograma do Samsung Health"></canvas>
+        <p>${both ? `${Math.round(same / both * 100)}% das épocas iguais às do Maré.` : ''}${atTxt}</p></div>`;
+    }
     const watch = s.source === 'watch';
     const sixth = sc.hasHr
       ? `<div><dt>FC mín.</dt><dd>${sum.hrMin ? Math.round(sum.hrMin) + ' bpm' : '—'}</dd></div>`
@@ -936,27 +973,32 @@ const UI = {
     const stack = ['W', 'L', 'D', 'R'].filter(k => sum[k] > 0).map(k => `<i style="flex:${sum[k]};background:var(--st-${k.toLowerCase()})"></i>`).join('');
     const cyc = sum.cyclesDone + (sum.lastCycleMin >= 45 ? 1 : 0);
     $('#reportIn').innerHTML = `
-      <div class="rp-head"><button class="btn-ghost" id="rpBack">← Voltar</button>${s.example ? '<span class="tag ex">Exemplo</span>' : watch ? '<span class="tag">Galaxy Watch</span>' : ''}</div>
+      <div class="rp-head"><button class="btn-ghost" id="rpBack">← Voltar</button>${s.example ? '<span class="tag ex">Exemplo</span>' : watch ? '<span class="tag">Galaxy Watch</span>' : sh ? '<span class="tag">Samsung Health</span>' : s.ext ? '<span class="tag">celular + relógio</span>' : ''}</div>
       <p class="eyebrow">${title}</p>
       <p class="big">${durTxt(sum.tst)} de sono<small>Na cama ${hm(s.start)}–${hm(s.end)} · ${durTxt(sum.inBed)}</small></p>
       <dl class="stats">
-        <div><dt>Latência</dt><dd>${sum.latency == null ? '—' : durShort(sum.latency)}</dd></div>
+        <div><dt>Latência</dt><dd>${sh || sum.latency == null ? '—' : durShort(sum.latency)}</dd></div>
         <div><dt>Eficiência</dt><dd>${Math.round(sum.eff * 100)}%</dd></div>
         <div><dt>Ciclos</dt><dd>${s.mode === 'night' ? '≈ ' + cyc : '—'}</dd></div>
         <div><dt>Acordado*</dt><dd>${durShort(sum.waso)}</dd></div>
         ${sixth}
-        <div><dt>Movimentos</dt><dd>${sum.moves}</dd></div>
+        <div><dt>Movimentos</dt><dd>${sh ? '—' : sum.moves}</dd></div>
       </dl>
       <canvas class="hypno" id="rpHypno" aria-label="Hipnograma estimado da sessão"></canvas>
       <div class="stack">${stack}</div>
       <div class="legend">${legend}</div>
+      ${cmp}
       <div class="wake-box">
         <p class="eyebrow">Despertar</p>
         <p>${wakeLine}</p>
-        <p class="dim">${wakeStage ? `Logo antes do despertar: ${wakeStage}.` : ''} ${kssTxt}</p>
+        <p class="dim">${!sum.endStage ? '' : sh ? `Último estágio registrado: ${STAGE_NAME[sum.endStage].toLowerCase()}.` : `Logo antes do despertar: ${wakeStage}.`} ${kssTxt}</p>
       </div>
-      ${sum.gap > 1 ? `<p class="note" style="color:var(--danger)">${durTxt(sum.gap)} sem dados: a tela apagou ou o app saiu da frente.</p>` : ''}
-      <p class="note">*Acordado depois de pegar no sono. ${sc.hasHr
+      ${!sh && sum.gap > 1 ? `<p class="note" style="color:var(--danger)">${durTxt(sum.gap)} sem dados: a tela apagou ou o app saiu da frente.</p>` : ''}
+      <p class="note">*Acordado depois de pegar no sono. ${sh
+        ? 'Estágios calculados pelo Samsung Health a partir do Galaxy Watch; a FC aparece em lilás. É estimativa de relógio e não substitui polissonografia.'
+        : s.ext && sc.hasHr
+        ? 'Estágios do Maré estimados por movimento e som, refinados com a FC do Galaxy Watch (linha lilás). Abaixo, a leitura do próprio Samsung Health para comparar. Nenhuma das duas substitui polissonografia.'
+        : sc.hasHr
         ? 'Estágios estimados por movimento no pulso e frequência cardíaca (linha lilás). A FC ajuda a separar profundo de REM, mas continua sendo estimativa e não substitui polissonografia.'
         : 'Estágios estimados por movimento e som. O celular separa bem dormindo × acordado; profundo e REM são inferidos pelo padrão de ciclo e não substituem polissonografia.'}</p>
       <div class="actions">
@@ -964,7 +1006,10 @@ const UI = {
       </div>`;
     this.show('#report');
     $('#report').scrollTop = 0;
-    requestAnimationFrame(() => drawHypno($('#rpHypno'), s, sc, false));
+    requestAnimationFrame(() => {
+      drawHypno($('#rpHypno'), s, sc, false);
+      if (ext) drawHypno($('#rpExt'), s, { stage: ext, hasHr: false }, true);
+    });
     $('#rpBack').onclick = () => this.hide('#report');
     const csv = $('#rpCsv'); if (csv) csv.onclick = () => exportCSV(s, sc);
     const del = $('#rpDel');
@@ -979,24 +1024,118 @@ const UI = {
   }
 };
 function exportCSV(s, sc) {
-  const rows = [['inicio_epoca', 'atividade', 'seg_movimento', 'sons_isolados', 'ronco', 'estagio_estimado']];
-  s.epochs.forEach((e, i) => rows.push([new Date(s.start + i * 30000).toISOString(), e.a, e.m, e.s, e.snore ? 1 : 0, sc.stage[i]]));
+  const ext = s.ext ? extStages(s) : null;
+  const rows = [['inicio_epoca', 'atividade', 'seg_movimento', 'sons_isolados', 'ronco', 'fc_bpm', 'estagio_estimado', 'estagio_samsung']];
+  s.epochs.forEach((e, i) => rows.push([new Date(s.start + i * 30000).toISOString(), e.a, e.m, e.s, e.snore ? 1 : 0, e.hr || '', sc.stage[i], ext ? ext[i] : '']));
   const blob = new Blob([rows.map(r => r.join(',')).join('\n')], { type: 'text/csv' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
   a.download = `mare-${new Date(s.start).toISOString().slice(0, 10)}-${s.mode}.csv`;
   document.body.appendChild(a); a.click(); a.remove();
 }
 
+/* ---------------- Samsung Health ---------------- */
+function extStages(s) {
+  const n = s.epochs.length, out = new Array(n).fill('?'), st = (s.ext && s.ext.stages) || [];
+  if (!st.length) return out;
+  const first = st[0].s, last = st[st.length - 1].e;
+  for (let i = 0; i < n; i++) {
+    const t = s.start + i * 30000 + 15000, v = Core.SH.stageAt(st, t);
+    out[i] = v || (t >= first && t <= last ? 'W' : '?');
+  }
+  return out;
+}
+function scoreSession(s) {
+  if (s.source !== 'samsung') return Core.score(s.epochs, { mode: s.mode });
+  const stage = extStages(s), n = stage.length;
+  const onset = stage.findIndex(x => x === 'L' || x === 'D' || x === 'R'), bounds = [];
+  if (onset >= 0) {
+    bounds.push(onset);
+    for (let i = onset + 1; i < n; i++) if (stage[i - 1] === 'R' && stage[i] !== 'R' && i - bounds[bounds.length - 1] >= 40) bounds.push(i);
+  }
+  return { onset, stage, bounds, hasHr: s.epochs.filter(e => e.hr > 0).length >= n * 0.3 };
+}
+function fillHr(s, hr) { // amostra minuto a minuto -> épocas de 30 s (só preenche com leitura a até 90 s)
+  let j = 0;
+  s.epochs.forEach((e, i) => {
+    const m = s.start + i * 30000 + 15000;
+    while (j + 1 < hr.length && hr[j + 1][0] <= m) j++;
+    let best = null, d = Infinity;
+    for (let k = Math.max(0, j - 1); k <= Math.min(hr.length - 1, j + 1); k++) {
+      const dd = m >= hr[k][0] && m < hr[k][0] + 60000 ? 0 : Math.abs(m - hr[k][0]);
+      if (dd < d) { d = dd; best = hr[k][1]; }
+    }
+    e.hr = best != null && d <= 90000 ? Math.round(best) : 0;
+    e.hrSd = 0;
+  });
+}
+const overlapMs = (a, b) => Math.max(0, Math.min(a.end, b.end) - Math.max(a.start, b.start));
+async function importSamsung(files) {
+  const all = loadSessions(), phone = all.filter(s => !s.source && !s.example);
+  const r = await Core.SH.read(files, { ref: phone.map(s => ({ start: s.start, end: s.end })), days: 30 });
+  if (!r.nights.length) {
+    toast(r.found.stages ? 'Os arquivos não têm noites dos últimos 30 dias.' : 'Não encontrei estágios do sono nesses arquivos. Escolha o .zip da exportação ou o arquivo com "sleep_stage" no nome.');
+    return;
+  }
+  let merged = 0, added = 0, skipped = 0, last = null;
+  for (const nt of r.nights) {
+    const hr = nt.hr.map(x => [Math.round(x[0]), Math.round(x[1] * 10) / 10]);
+    const ext = { src: 'samsung', stages: nt.stages, hr, perMinute: !!r.perMinute };
+    let match = null, best = 0;
+    for (const s of phone) { const o = overlapMs(s, nt); if (o > best) { best = o; match = s; } }
+    if (match && best >= 30 * 60000) {
+      match.ext = ext; fillHr(match, hr); match.sensors = Object.assign({}, match.sensors, { hr: true });
+      saveSession(match); merged++; last = (!last || match.start > last.start) ? match : last;
+      continue;
+    }
+    if (all.some(s => s.source === 'watch' && overlapMs(s, nt) >= 30 * 60000)) { skipped++; continue; }
+    const start = Math.floor(nt.start / 30000) * 30000, n = Math.max(1, Math.ceil((nt.end - start) / 30000));
+    const mid = new Date((nt.start + nt.end) / 2).getHours(), dur = (nt.end - nt.start) / 60000;
+    const s = {
+      id: 'h' + Math.round(nt.start), source: 'samsung', mode: dur < 180 && mid >= 9 && mid < 19 ? 'nap' : 'night',
+      start, end: start + n * 30000, napMin: Math.round(dur), ext,
+      epochs: Array.from({ length: n }, () => ({ a: 0, m: 0, s: 0, snore: false, gap: false, hr: 0, hrSd: 0 })),
+      sensors: { motion: false, mic: false, hr: true }
+    };
+    fillHr(s, hr);
+    saveSession(s); added++; last = (!last || s.start > last.start) ? s : last;
+  }
+  refresh();
+  const parts = [];
+  if (merged) parts.push(`${merged} ${merged === 1 ? 'noite combinada' : 'noites combinadas'} com o Maré`);
+  if (added) parts.push(`${added} ${added === 1 ? 'noite nova' : 'noites novas'} do relógio`);
+  if (skipped) parts.push(`${skipped} já tinham dados do app do relógio`);
+  let msg = parts.join(' · ') + '.';
+  if (!r.perMinute) msg += ' A FC veio só em medições espaçadas; para minuto a minuto, inclua a pasta jsons no .zip.';
+  toast(msg);
+  if (last) UI.showReport(loadSessions().find(x => x.id === last.id) || last);
+}
+function renderSH() {
+  const n = loadSessions().filter(s => s.ext).length;
+  $('#shStatus').textContent = n
+    ? `${n} ${n === 1 ? 'noite' : 'noites'} com dados do relógio. Importe de novo para trazer as mais recentes.`
+    : 'Traz o sono e a FC que o seu Galaxy Watch mediu e compara com o Maré. Funciona com qualquer relógio Samsung, inclusive o Watch 3.';
+}
+$('#shFile').addEventListener('change', async e => {
+  const files = [...e.target.files]; e.target.value = '';
+  if (!files.length) return;
+  $('#shStatus').textContent = 'Lendo os arquivos…';
+  try { await importSamsung(files); }
+  catch (err) { toast('Não consegui ler esses arquivos. Escolha o .zip da exportação do Samsung Health ou os CSVs de sleep_stage e heart_rate.'); }
+  finally { renderSH(); }
+});
+$('#shBtn').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('#shFile').click(); } });
+renderSH();
+
 /* ---------------- telas da página ---------------- */
 const SAMPLE = Core.sampleNight(new Date());
 function nightCard(s) {
-  const sc = Core.score(s.epochs, { mode: s.mode }), sum = Core.summarize(s, sc);
+  const sc = scoreSession(s), sum = Core.summarize(s, sc);
   const b = document.createElement('button');
   b.className = 'card night-card';
   b.innerHTML = `
-    <div class="night-meta"><span><b>${s.mode === 'night' ? dateTxt(s.start) : 'Cochilo · ' + dateTxt(s.start)}</b> <span class="dim">${hm(s.start)}–${hm(s.end)}</span></span>${s.example ? '<span class="tag ex">Exemplo</span>' : `<span class="tag">${s.source === 'watch' ? 'relógio · ' : ''}${s.mode === 'night' ? 'noite' : s.napMin + ' min'}</span>`}</div>
+    <div class="night-meta"><span><b>${s.mode === 'night' ? dateTxt(s.start) : 'Cochilo · ' + dateTxt(s.start)}</b> <span class="dim">${hm(s.start)}–${hm(s.end)}</span></span>${s.example ? '<span class="tag ex">Exemplo</span>' : `<span class="tag">${s.source === 'samsung' ? 'Samsung Health' : (s.source === 'watch' ? 'relógio · ' : '') + (s.mode === 'night' ? 'noite' : s.napMin + ' min') + (s.ext ? ' + relógio' : '')}</span>`}</div>
     <canvas aria-hidden="true"></canvas>
-    <div class="night-meta dim"><span>${durTxt(sum.tst)} de sono${sum.endStage ? ' · acordou ' + STAGE_AT[sum.endStage] : ''}</span><span>${s.kss ? 'KSS ' + s.kss : ''}</span></div>`;
+    <div class="night-meta dim"><span>${durTxt(sum.tst)} de sono${!sum.endStage ? '' : sum.endStage === 'W' ? ' · já acordado no fim' : ' · acordou ' + STAGE_AT[sum.endStage]}</span><span>${s.kss ? 'KSS ' + s.kss : ''}</span></div>`;
   b.onclick = () => UI.showReport(s);
   requestAnimationFrame(() => drawHypno($('canvas', b), s, sc, true));
   return b;
@@ -1022,9 +1161,12 @@ function renderNights() {
     const byMove = night.filter(s => s.alarm.reason === 'move' || s.alarm.reason === 'light').map(s => s.kss);
     const byLimit = night.filter(s => s.alarm.reason === 'limit').map(s => s.kss);
     const avg = a => num(a.reduce((x, y) => x + y, 0) / a.length);
-    $('#insight').innerHTML = byMove.length >= 2 && byLimit.length >= 2
+    const val = list.filter(s => s.ext && s.source !== 'samsung' && s.alarm && (s.alarm.reason === 'move' || s.alarm.reason === 'light'))
+      .map(s => Core.SH.stageAt(s.ext.stages, s.alarm.at)).filter(Boolean);
+    const valTxt = val.length ? ` Segundo o relógio, em <b>${val.filter(x => x === 'L' || x === 'W').length} de ${val.length}</b> despertares pelo movimento você estava em sono leve ou já acordado.` : '';
+    $('#insight').innerHTML = (byMove.length >= 2 && byLimit.length >= 2
       ? `KSS médio ao acordar · pelo movimento: <b>${avg(byMove)}</b> (${byMove.length} noites) · pelo horário limite: <b>${avg(byLimit)}</b> (${byLimit.length} noites). Quanto menor, mais desperto.`
-      : 'Registre a sonolência (KSS) ao acordar por algumas noites. Com 2 despertares por movimento e 2 pelo limite, comparo os dois aqui.';
+      : 'Registre a sonolência (KSS) ao acordar por algumas noites. Com 2 despertares por movimento e 2 pelo limite, comparo os dois aqui.') + valTxt;
   }
   const last = $('#lastNight'); last.innerHTML = '';
   last.appendChild(nightCard(list.find(s => s.mode === 'night') || SAMPLE));
@@ -1153,7 +1295,7 @@ function renderWatch() {
     st.textContent = `Conectado${now.hr ? ` · FC ${now.hr} bpm` : ''}${now.st === 1 ? ' · acompanhando agora' : ''} · ${fresh ? fresh + (fresh === 1 ? ' sessão nova' : ' sessões novas') : 'nada novo para importar'}.`;
     btn.textContent = 'Atualizar'; act.hidden = false;
   } else {
-    st.textContent = 'Movimento no pulso e frequência cardíaca. O alarme vibra no seu pulso e o celular pode ficar bloqueado.';
+    st.textContent = 'Watch 4 ou mais novo: movimento no pulso e frequência cardíaca, com o alarme vibrando no pulso.';
     btn.textContent = 'Conectar'; act.hidden = true;
   }
 }

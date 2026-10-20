@@ -286,4 +286,205 @@ const Core = (() => {
   return { EPOCH_S, EPM, T, act, isMove, isTwitch, score, summarize, sampleNight, findOnset, dScores, WATCH, decodeWatch, fromWatch, cmd };
 })();
 
+/* Samsung Health — lê a exportação de dados pessoais (zip ou CSV/JSON soltos). */
+const SH = (() => {
+  const STAGE = { 40001: 'W', 40002: 'L', 40003: 'D', 40004: 'R', awake: 'W', wake: 'W', light: 'L', deep: 'D', rem: 'R' };
+  const MIN = 60000;
+  const base = n => n.split(/[\\/]/).pop().toLowerCase();
+
+  /* ---------- zip (com zip64) usando DecompressionStream ---------- */
+  async function inflateRaw(u8) {
+    const s = new Blob([u8]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    return new Uint8Array(await new Response(s).arrayBuffer());
+  }
+  function unzip(buf) {
+    const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength), td = new TextDecoder();
+    let eocd = -1;
+    for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65557); i--) if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+    if (eocd < 0) throw new Error('zip');
+    let count = dv.getUint16(eocd + 10, true), cd = dv.getUint32(eocd + 16, true);
+    if ((count === 0xffff || cd === 0xffffffff) && eocd >= 20 && dv.getUint32(eocd - 20, true) === 0x07064b50) {
+      const z = Number(dv.getBigUint64(eocd - 12, true));
+      if (dv.getUint32(z, true) === 0x06064b50) { count = Number(dv.getBigUint64(z + 32, true)); cd = Number(dv.getBigUint64(z + 48, true)); }
+    }
+    const out = [];
+    let p = cd;
+    for (let k = 0; k < count && p + 46 <= buf.length; k++) {
+      if (dv.getUint32(p, true) !== 0x02014b50) break;
+      const method = dv.getUint16(p + 10, true), nl = dv.getUint16(p + 28, true), xl = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true);
+      let cs = dv.getUint32(p + 20, true), us = dv.getUint32(p + 24, true), lho = dv.getUint32(p + 42, true);
+      const name = td.decode(buf.subarray(p + 46, p + 46 + nl));
+      for (let x = p + 46 + nl; x + 4 <= p + 46 + nl + xl;) { // campo extra zip64
+        const id = dv.getUint16(x, true), sz = dv.getUint16(x + 2, true);
+        if (id === 1) {
+          let q = x + 4;
+          if (us === 0xffffffff) { us = Number(dv.getBigUint64(q, true)); q += 8; }
+          if (cs === 0xffffffff) { cs = Number(dv.getBigUint64(q, true)); q += 8; }
+          if (lho === 0xffffffff) lho = Number(dv.getBigUint64(q, true));
+        }
+        x += 4 + sz;
+      }
+      if (!name.endsWith('/')) out.push({
+        name,
+        async bytes() {
+          const ln = dv.getUint16(lho + 26, true), lx = dv.getUint16(lho + 28, true), d = buf.subarray(lho + 30 + ln + lx, lho + 30 + ln + lx + cs);
+          if (method === 0) return d;
+          if (method === 8) return inflateRaw(d);
+          throw new Error('compressão');
+        }
+      });
+      p += 46 + nl + xl + cl;
+    }
+    return out;
+  }
+
+  /* ---------- CSV / JSON → linhas ---------- */
+  function csv(text) {
+    const rows = []; let row = [], f = '', q = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (q) { if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
+      else if (c === '"') q = true;
+      else if (c === ',') { row.push(f); f = ''; }
+      else if (c === '\n') { row.push(f); rows.push(row); row = []; f = ''; }
+      else if (c !== '\r') f += c;
+    }
+    if (f || row.length) { row.push(f); rows.push(row); }
+    let h = rows.findIndex(r => r.some(x => x.trim()));
+    if (h < 0) return [];
+    if (/^com\.samsung\./i.test(rows[h][0] || '') && /^\d+$/.test((rows[h][1] || '').trim())) h++; // preâmbulo
+    const head = (rows[h] || []).map(k => k.trim().split('.').pop().toLowerCase());
+    return rows.slice(h + 1).filter(r => r.some(x => x.trim())).map(r => {
+      const o = {}; head.forEach((k, i) => { if (k && r[i] != null && r[i] !== '' && o[k] == null) o[k] = r[i].trim(); }); return o;
+    });
+  }
+  function jsonRows(text) {
+    let j; try { j = JSON.parse(text); } catch (e) { return []; }
+    if (j && !Array.isArray(j)) j = j.data || j.records || Object.values(j).find(Array.isArray) || [];
+    return (Array.isArray(j) ? j : []).filter(o => o && typeof o === 'object').map(o => {
+      const r = {}; for (const k in o) r[k.split('.').pop().toLowerCase()] = o[k]; return r;
+    });
+  }
+
+  /* ---------- horários ---------- */
+  function offMin(s) { // "UTC-0400" -> -240
+    const m = /UTC([+-])(\d{1,2}):?(\d{2})?/i.exec(String(s || ''));
+    return m ? (m[1] === '-' ? -1 : 1) * (+m[2] * 60 + +(m[3] || 0)) : null;
+  }
+  function ts(v, off, mode) {
+    if (v == null || v === '') return NaN;
+    if (typeof v === 'number' || /^\d{9,}(\.\d+)?$/.test(String(v))) { const n = +v; return n > 1e11 ? n : n * 1000; }
+    const s = String(v).trim();
+    if (/[zZ]$|[+-]\d{2}:?\d{2}$/.test(s) && /T/.test(s)) return Date.parse(s);
+    const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?/.exec(s);
+    if (!m) return Date.parse(s);
+    const u = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0), +((m[7] || '0') + '00').slice(0, 3));
+    const o = offMin(off);
+    if (mode === 'local') return o == null ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0)).getTime() : u - o * MIN;
+    return u; // padrão do Samsung Health: horário em UTC, fuso em time_offset
+  }
+
+  /* ---------- leitura principal ---------- */
+  async function read(files, opt = {}) {
+    const now = opt.now || Date.now(), days = opt.days || 30, ref = opt.ref || [];
+    const items = [];
+    for (const f of files) {
+      const nm = f.name || '';
+      const raw = f.bytes ? await f.bytes() : new Uint8Array(await f.arrayBuffer());
+      if (/\.zip$/i.test(nm) || (raw[0] === 0x50 && raw[1] === 0x4b)) unzip(raw).forEach(e => items.push(e));
+      else items.push({ name: nm, bytes: async () => raw });
+    }
+    const td = new TextDecoder();
+    const rowsOf = async e => { const t = td.decode(await e.bytes()); return /\.json$/i.test(e.name) ? jsonRows(t) : csv(t); };
+    const stageRows = [], hrRows = [], binIdx = new Map();
+    for (const e of items) {
+      const b = base(e.name);
+      if (!/\.(csv|json)$/.test(b)) continue;
+      if (b.includes('heart_rate') && b.includes('binning')) { binIdx.set(b, e); continue; }
+      if (b.includes('sleep_stage')) (await rowsOf(e)).forEach(r => stageRows.push(r));
+      else if (b.includes('heart_rate') && !/resting|hrv|variability|_summary/.test(b)) (await rowsOf(e)).forEach(r => hrRows.push(r));
+    }
+    if (!stageRows.length) return { nights: [], mode: null, found: { stages: 0, hr: hrRows.length, bins: binIdx.size } };
+
+    const binFor = r => {
+      const v = r.binning_data ? base(String(r.binning_data)) : '';
+      if (v && binIdx.has(v)) return binIdx.get(v);
+      const id = String(r.datauuid || '').toLowerCase();
+      if (id) for (const [k, e] of binIdx) if (k.startsWith(id)) return e;
+      return null;
+    };
+    const readBin = async e => jsonRows(td.decode(await e.bytes()))
+      .map(o => [+o.start_time, +o.heart_rate]).filter(x => x[0] > 1e11 && x[1] >= 30 && x[1] <= 220);
+
+    // decide se os horários do CSV estão em UTC ou em hora local
+    let mode = null;
+    const withBin = hrRows.filter(r => r.start_time && binFor(r)).slice(0, 12);
+    let vu = 0, vl = 0;
+    for (const r of withBin) {
+      const b = await readBin(binFor(r)); if (!b.length) continue;
+      const t0 = Math.min(...b.map(x => x[0]));
+      if (Math.abs(ts(r.start_time, r.time_offset, 'utc') - t0) <= 2 * MIN) vu++;
+      else if (Math.abs(ts(r.start_time, r.time_offset, 'local') - t0) <= 2 * MIN) vl++;
+    }
+    if (vu || vl) mode = vu >= vl ? 'utc' : 'local';
+    const segsFor = md => stageRows.map(r => ({
+      s: ts(r.start_time, r.time_offset, md), e: ts(r.end_time, r.time_offset, md),
+      st: STAGE[String(r.stage != null ? r.stage : r.sleep_stage).toLowerCase()], sid: r.sleep_id || ''
+    })).filter(x => x.st && x.e > x.s && x.e - x.s < 6 * 3600000);
+    if (!mode) {
+      const score = md => {
+        const sg = segsFor(md); let ov = 0, night = 0, tot = 0;
+        for (const x of sg) {
+          for (const r of ref) ov += Math.max(0, Math.min(x.e, r.end) - Math.max(x.s, r.start));
+          const h = new Date((x.s + x.e) / 2).getHours(), d = x.e - x.s; tot += d; if (h >= 20 || h < 10) night += d;
+        }
+        return ov / MIN + (tot ? night / tot : 0);
+      };
+      mode = score('local') > score('utc') + 1e-9 ? 'local' : 'utc';
+    }
+
+    // agrupa em noites
+    const segs = segsFor(mode).sort((a, b) => a.s - b.s);
+    const groups = [];
+    for (const x of segs) {
+      const g = groups[groups.length - 1];
+      if (g && ((x.sid && x.sid === g.sid) || x.s - g.end <= 90 * MIN)) { g.stages.push(x); g.end = Math.max(g.end, x.e); }
+      else groups.push({ sid: x.sid, start: x.s, end: x.e, stages: [x] });
+    }
+    const nights = groups.filter(g => g.end > now - days * 86400000 && g.end - g.start >= 20 * MIN);
+
+    // frequência cardíaca de cada noite
+    let perMinute = false;
+    for (const n of nights) {
+      const lo = n.start - 15 * MIN, hi = n.end + 15 * MIN, hr = [];
+      for (const r of hrRows) {
+        const s = ts(r.start_time, r.time_offset, mode), e = ts(r.end_time, r.time_offset, mode) || s;
+        if (!(e >= lo && s <= hi)) continue;
+        const be = binFor(r);
+        const b = be ? await readBin(be) : [];
+        if (b.length) { perMinute = true; b.forEach(x => { if (x[0] >= lo && x[0] <= hi) hr.push(x); }); }
+        else { const v = +(r.heart_rate != null ? r.heart_rate : r.value); if (v >= 30 && v <= 220) hr.push([s, v]); }
+      }
+      hr.sort((a, b) => a[0] - b[0]);
+      n.hr = hr.filter((x, i) => !i || x[0] - hr[i - 1][0] >= 20000); // sem duplicatas
+      n.stages = n.stages.map(x => ({ s: x.s, e: x.e, st: x.st }));
+      delete n.sid;
+    }
+    return { nights, mode, perMinute, found: { stages: stageRows.length, hr: hrRows.length, bins: binIdx.size } };
+  }
+
+  function stageAt(stages, t) {
+    let best = null, dist = Infinity;
+    for (const x of stages) {
+      if (t >= x.s && t < x.e) return x.st;
+      const d = Math.min(Math.abs(t - x.s), Math.abs(t - x.e));
+      if (d < dist) { dist = d; best = x.st; }
+    }
+    return dist <= 3 * MIN ? best : null;
+  }
+
+  return { read, stageAt, unzip, csv, ts };
+})();
+Core.SH = SH;
+
 if (typeof module !== 'undefined') module.exports = Core;

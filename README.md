@@ -3,9 +3,19 @@
 Acompanha o sono e acorda você no sono leve, dentro de uma janela antes do horário limite.
 
 - **Celular:** abra **https://renatoavalanche2003.github.io/APP-de-rel-gio/** no Chrome e use "Adicionar à tela inicial". Mede movimento pelo acelerômetro e ronco pelo microfone.
+- **Galaxy Watch 3 ou mais antigo (Tizen):** exporte os dados do Samsung Health e importe na aba **Noites** do app. O Maré combina os estágios e a FC do relógio com a noite medida pelo celular e mostra o que o relógio marcava na hora do despertar.
 - **Galaxy Watch 4 ou mais novo:** instale `Mare-relogio.apk`. Mede movimento no pulso e frequência cardíaca, vibra no pulso na hora de acordar e envia a noite ao celular por Bluetooth.
 
-## Instalar no relógio
+## Importar do Samsung Health
+
+1. No Samsung Health do celular: menu ☰ → Configurações → **Baixar dados pessoais** → Baixar.
+2. Os arquivos vão para `Download/Samsung Health/` no celular.
+3. No app Meus Arquivos, segure a pasta mais recente e toque em **Compactar**.
+4. No Maré, aba **Noites** → **Importar** → escolha o `.zip`.
+
+Para ter FC minuto a minuto durante o sono, deixe a frequência cardíaca do relógio em "Medir continuamente".
+
+## Instalar no relógio (Watch 4 ou mais novo)
 
 1. Relógio: Configurações → Sobre o relógio → Software → toque 5× em "Versão do software".
 2. Opções do desenvolvedor: ative "Depuração ADB" e "Depurar por Wi-Fi" (relógio e celular no mesmo Wi-Fi).
