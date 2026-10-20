@@ -1,34 +1,27 @@
 # Maré — despertador de ciclo
 
-Acompanha o sono e acorda você no sono leve, dentro de uma janela antes do horário limite.
+Acompanha o sono pelo celular e acorda você no sono leve, dentro de uma janela antes do horário limite.
 
-- **Celular:** abra **https://renatoavalanche2003.github.io/APP-de-rel-gio/** no Chrome e use "Adicionar à tela inicial". Mede movimento pelo acelerômetro e ronco pelo microfone.
-- **Galaxy Watch 3 ou mais antigo (Tizen):** exporte os dados do Samsung Health e importe na aba **Noites** do app. O Maré combina os estágios e a FC do relógio com a noite medida pelo celular e mostra o que o relógio marcava na hora do despertar.
-- **Galaxy Watch 4 ou mais novo:** instale `Mare-relogio.apk`. Mede movimento no pulso e frequência cardíaca, vibra no pulso na hora de acordar e envia a noite ao celular por Bluetooth.
+**Abrir:** https://renatoavalanche2003.github.io/APP-de-rel-gio/ no Chrome do celular, depois "Adicionar à tela inicial".
 
-## Importar do Samsung Health
+## O que faz
 
-1. No Samsung Health do celular: menu ☰ → Configurações → **Baixar dados pessoais** → Baixar.
-2. Os arquivos vão para `Download/Samsung Health/` no celular.
-3. No app Meus Arquivos, segure a pasta mais recente e toque em **Compactar**.
-4. No Maré, aba **Noites** → **Importar** → escolha o `.zip`.
+- **Noite:** você define "acordar até" e uma janela de 10–45 min. Dentro da janela, o alarme toca no primeiro movimento de sono leve; sem movimento, toca no horário limite.
+- **Cochilo:** 10, 20 ou 90 min, contados a partir de quando você pega no sono.
+- **Relatório:** hipnograma, latência, eficiência, ciclos, ronco e sonolência ao acordar (escala de Karolinska).
 
-Para ter FC minuto a minuto durante o sono, deixe a frequência cardíaca do relógio em "Medir continuamente".
+## Como usar à noite
 
-## Instalar no relógio (Watch 4 ou mais novo)
-
-1. Relógio: Configurações → Sobre o relógio → Software → toque 5× em "Versão do software".
-2. Opções do desenvolvedor: ative "Depuração ADB" e "Depurar por Wi-Fi" (relógio e celular no mesmo Wi-Fi).
-3. No celular, use um instalador ADB (Bugjaeger ou Wear Installer), pareie com o código mostrado no relógio e envie o `Mare-relogio.apk`.
-4. Abra o Maré no relógio e permita sensores, Bluetooth e notificações.
+- Celular na tomada, sobre o colchão perto do travesseiro, tela para baixo. A tela fica ligada em preto a noite toda.
+- Volume alto e "Não perturbe" ligado.
+- Mantenha um despertador comum 5 min depois do limite: se o navegador fechar, ele te salva.
 
 ## Como funciona
 
-Épocas de 30 s. Sono × vigília por média ponderada no estilo Cole-Kripke. Ciclos pelas viradas de posição a cada ~70–120 min. Com o relógio, a frequência cardíaca separa profundo (FC baixa e estável) de REM (FC alta e oscilante). O alarme toca no primeiro movimento dentro da janela; sem movimento, no horário limite.
-
-Estágios são estimativa e não substituem polissonografia. A aba **Ciência** do app traz o mecanismo e as referências.
+Acelerômetro e microfone em épocas de 30 s. Sono × vigília por média ponderada no estilo Cole-Kripke. Ciclos pelas viradas de posição a cada ~70–120 min. Ronco separado de ruídos isolados pelo ritmo. Profundo e REM são inferidos pela posição no ciclo e não substituem polissonografia. A aba **Ciência** do app traz o mecanismo e as referências.
 
 ## Código
 
-- `fonte/web/` — app do celular. `python3 build.py` gera `dist/` (copie o conteúdo para a raiz do repositório).
-- `fonte/relogio/` — app Wear OS em Java, sem Gradle. `build.sh` compila com o Android SDK (build-tools 35, platform 35).
+`fonte/web/` tem o código. `python3 build.py` gera `dist/`; copie o conteúdo para a raiz do repositório.
+
+A versão com o app do Galaxy Watch (Wear OS) e a importação do Samsung Health está guardada no ramo `relogio`.
