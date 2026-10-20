@@ -74,6 +74,10 @@ a{color:var(--ember)}
 .seg{display:inline-flex;background:var(--night);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
 .seg button{border:0;background:transparent;color:var(--muted);border-radius:8px;padding:6px 11px;font-size:14px}
 .seg button[aria-pressed="true"]{background:var(--panel-2);color:var(--ink)}
+.snd{display:flex;flex-direction:column;gap:10px}
+.seg-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}
+.seg-grid button{padding:9px 8px}
+.snd .note button{border:0;background:none;color:var(--ember);padding:0;font:inherit;text-decoration:underline;text-underline-offset:3px}
 .switch{position:relative;width:52px;height:30px;border-radius:999px;border:1px solid var(--line);background:var(--night);flex:none}
 .switch::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--faint);transition:transform .2s,background .2s}
 .switch[aria-checked="true"]{background:rgba(255,157,92,.18);border-color:var(--ember)}
@@ -235,12 +239,21 @@ details.card[open] summary::after{content:"–"}
           <button data-v="firme">Firme</button><button data-v="medio">Médio</button><button data-v="macio">Macio</button>
         </div>
       </div>
-      <div class="row">
-        <span><span class="lbl">Som do alarme</span><span class="hint">Começa baixinho e sobe em 60 s.</span></span>
-        <div class="row" style="gap:8px">
-          <div class="seg" id="sndSeg"><button data-v="amanhecer">Amanhecer</button><button data-v="sinos">Sinos</button></div>
+      <div class="snd">
+        <div class="row">
+          <span><span class="lbl">Som do alarme</span><span class="hint">Toca no volume de mídia do celular: deixe no máximo.</span></span>
           <button class="btn-link" id="preview">Ouvir</button>
         </div>
+        <div class="seg seg-grid" id="sndSeg">
+          <button data-v="epico">Épico</button><button data-v="amanhecer">Amanhecer</button>
+          <button data-v="sinos">Sinos</button><button data-v="custom">Minha música</button>
+        </div>
+        <p class="note" id="customInfo" hidden></p>
+        <input type="file" id="customFile" accept="audio/*" hidden>
+      </div>
+      <div class="row">
+        <span><span class="lbl">Volume crescente</span><span class="hint">Começa em 30% e chega ao máximo em 20 s. Desligado, toca no máximo desde o início.</span></span>
+        <button class="switch" id="rampSw" role="switch" aria-checked="true" aria-label="Volume crescente"></button>
       </div>
     </div>
 
@@ -251,7 +264,7 @@ details.card[open] summary::after{content:"–"}
       <ul class="checklist">
         <li>Celular na tomada: a tela fica ligada a noite toda.</li>
         <li>Sobre o colchão, perto do travesseiro, tela para baixo.</li>
-        <li>Volume alto e, no iPhone, modo silencioso desligado.</li>
+        <li>Volume de <b>mídia</b> no máximo: é ele que controla o alarme do navegador. No iPhone, modo silencioso desligado.</li>
         <li>Não perturbe ligado, para notificações não acenderem nada.</li>
         <li>Coloque também um despertador comum 5 min depois do limite. Se o navegador fechar, ele te salva.</li>
       </ul>
@@ -673,8 +686,9 @@ const store = {
   del(k) { try { localStorage.removeItem(k); } catch (e) {} }
 };
 const KEY = { settings: 'mare.settings.v1', sessions: 'mare.sessions.v1', active: 'mare.active.v1' };
-const DEFAULTS = { wakeBy: '06:30', windowMin: 30, mic: true, mattress: 'medio', sound: 'amanhecer', napMin: 20 };
+const DEFAULTS = { wakeBy: '06:30', windowMin: 30, mic: true, mattress: 'medio', sound: 'epico', napMin: 20, ramp: true, sv: 2 };
 const settings = Object.assign({}, DEFAULTS, store.get(KEY.settings, {}));
+if ((settings.sv || 1) < 2) { if (settings.sound === 'amanhecer') settings.sound = 'epico'; settings.sv = 2; }
 const saveSettings = () => store.set(KEY.settings, settings);
 const SENS = { firme: 3.4, medio: 2.8, macio: 2.3 };
 
@@ -697,12 +711,15 @@ function saveSession(sess) {
 const deleteSession = id => store.set(KEY.sessions, store.get(KEY.sessions, []).filter(x => x.id !== id));
 
 /* ---------------- áudio do alarme ---------------- */
+/* Todos os sons são sintetizados aqui (nada de arquivo de terceiros), passam por um compressor
+   e são normalizados para o pico máximo: soam o mais alto possível no volume de mídia do celular. */
 const PENTA = [261.63, 293.66, 329.63, 392.0, 440.0, 523.25, 587.33, 659.25, 783.99];
 const ARP = [0, 2, 4, 5, 7, 5, 4, 2, 1, 3, 5, 6, 8, 6, 5, 3];
+const midi = n => 440 * Math.pow(2, (n - 69) / 12);
 function scheduleNote(ctx, dest, kind, i, t) {
-  const voice = (f, peak, dec) => {
+  const voice = (f, peak, dec, type) => {
     const o = ctx.createOscillator(), g = ctx.createGain();
-    o.type = 'sine'; o.frequency.value = f;
+    o.type = type || 'sine'; o.frequency.value = f;
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(peak, t + 0.008);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dec);
@@ -712,10 +729,88 @@ function scheduleNote(ctx, dest, kind, i, t) {
     const f = i % 2 ? 587.33 : 392.0;
     [[1, 1, 3.2], [2.01, .5, 2.2], [2.76, .35, 1.6], [4.07, .2, 1.1], [5.4, .12, .7]].forEach(([r, gn, d]) => voice(f * r, .2 * gn, d));
   } else {
-    const f = PENTA[ARP[i % 16]];
-    [[1, 1], [2, .28], [3, .08]].forEach(([r, gn]) => voice(f * r, .22 * gn, 1.5));
+    const f = PENTA[ARP[i % 16]] * 2; // uma oitava acima: alto-falante de celular reproduz melhor
+    [[1, 1, 'triangle'], [2, .3, 'sine'], [3, .12, 'sine']].forEach(([r, gn, ty]) => voice(f * r, .22 * gn, 1.2, ty));
   }
 }
+
+/* ---- Épico: abertura de rock original (guitarra distorcida, bateria, melodia de metais) ---- */
+const EPIC = {
+  bpm: 152, bars: 8,
+  chords: [52, 48, 50, 47, 52, 48, 50, 47], // Mi m · Dó · Ré · Si  (raízes MIDI)
+  lead: [[0, 1, 71], [1, 1, 76], [2, 1, 79], [3, 1, 78], [4, 2, 76], [6, 1, 79], [7, 1, 81],
+         [8, 1.5, 78], [9.5, .5, 76], [10, 1, 74], [11, 1, 78], [12, 2, 75], [14, 2, 71],
+         [16, 1, 79], [17, 1, 83], [18, 1, 81], [19, 1, 79], [20, 1.5, 81], [21.5, .5, 79], [22, 2, 76],
+         [24, 1, 78], [25, 1, 81], [26, 1, 86], [27, 1, 84], [28, 2, 83], [30, 1, 75], [31, 1, 78]]
+};
+function noiseBuffer(ctx) {
+  const b = ctx.createBuffer(1, Math.round(ctx.sampleRate * .5), ctx.sampleRate), d = b.getChannelData(0);
+  let x = 12345;
+  for (let i = 0; i < d.length; i++) { x = (x * 16807) % 2147483647; d[i] = x / 1073741823.5 - 1; }
+  return b;
+}
+function scheduleEpic(ctx, out) {
+  const beat = 60 / EPIC.bpm, bar = beat * 4, nb = noiseBuffer(ctx);
+  const curve = new Float32Array(1024);
+  for (let i = 0; i < 1024; i++) { const x = i / 512 - 1; curve[i] = Math.tanh(7 * x) / Math.tanh(7); }
+  const shaper = ctx.createWaveShaper(); shaper.curve = curve;
+  const glp = ctx.createBiquadFilter(); glp.type = 'lowpass'; glp.frequency.value = 3400; glp.Q.value = .8;
+  const ghp = ctx.createBiquadFilter(); ghp.type = 'highpass'; ghp.frequency.value = 120;
+  const gG = ctx.createGain(); gG.gain.value = .30;
+  shaper.connect(glp); glp.connect(ghp); ghp.connect(gG); gG.connect(out);
+  const llp = ctx.createBiquadFilter(); llp.type = 'lowpass'; llp.frequency.value = 4800;
+  const lG = ctx.createGain(); lG.gain.value = .5;
+  llp.connect(lG); lG.connect(out);
+  const dG = ctx.createGain(); dG.gain.value = .55; dG.connect(out);
+  const env = (g, t, a, peak, end) => { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, end); };
+  const hit = (t, type, f, q, peak, dec) => {
+    const src = ctx.createBufferSource(); src.buffer = nb;
+    const fl = ctx.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q;
+    const g = ctx.createGain(); env(g, t, .002, peak, t + dec);
+    src.connect(fl); fl.connect(g); g.connect(dG); src.start(t); src.stop(t + dec + .02);
+  };
+  for (let b = 0; b < EPIC.bars; b++) {
+    const root = EPIC.chords[b];
+    for (let e = 0; e < 8; e++) {
+      const t = b * bar + e * beat / 2, len = beat / 2 * .9, acc = e % 2 ? .7 : 1;
+      [root, root + 7, root + 12].forEach(n => { // power chord em colcheias
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = 'sawtooth'; o.frequency.value = midi(n); o.detune.value = (n % 3 - 1) * 6;
+        env(g, t, .004, .33 * acc, t + len);
+        o.connect(g); g.connect(shaper); o.start(t); o.stop(t + len + .02);
+      });
+      hit(t, 'highpass', 7500, .7, .22, .045); // chimbal
+      if (e === 0 || e === 3 || e === 4) { // bumbo
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.frequency.setValueAtTime(170, t); o.frequency.exponentialRampToValueAtTime(48, t + .12);
+        env(g, t, .002, 1, t + .28); o.connect(g); g.connect(dG); o.start(t); o.stop(t + .3);
+        hit(t, 'bandpass', 3500, 1, .25, .012);
+      }
+      if (e === 2 || e === 6) { // caixa
+        hit(t, 'bandpass', 1900, .8, .9, .18);
+        const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'triangle'; o.frequency.value = 190;
+        env(g, t, .002, .5, t + .1); o.connect(g); g.connect(dG); o.start(t); o.stop(t + .12);
+      }
+    }
+    if (b === 3 || b === 7) hit(b * bar + 3.5 * beat, 'highpass', 5000, .5, .55, .6); // prato de virada
+  }
+  for (const [st, ln, n] of EPIC.lead) { // melodia: quadrada + oitava em serra, com vibrato
+    const t = st * beat, end = t + ln * beat * .94, f = midi(n);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(.42, t + .02);
+    g.gain.setValueAtTime(.36, Math.max(t + .03, end - .07)); g.gain.exponentialRampToValueAtTime(0.0001, end);
+    const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 5.6; lg.gain.value = f * .005;
+    lfo.connect(lg);
+    [['square', 1, .6], ['sawtooth', 2, .22]].forEach(([ty, r, gn]) => {
+      const o = ctx.createOscillator(), og = ctx.createGain(); o.type = ty; o.frequency.value = f * r; og.gain.value = gn;
+      lg.connect(o.frequency); o.connect(og); og.connect(g); o.start(t); o.stop(end + .02);
+    });
+    lfo.start(t + .12); lfo.stop(end + .02);
+    g.connect(llp);
+  }
+  return EPIC.bars * bar;
+}
+
 function wavBlob(data, sr) {
   const n = data.length, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
   const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
@@ -727,65 +822,151 @@ function wavBlob(data, sr) {
   return new Blob([buf], { type: 'audio/wav' });
 }
 const renderCtx = ctx => new Promise(res => { ctx.oncomplete = e => res(e.renderedBuffer); const p = ctx.startRendering(); if (p && p.then) p.then(res); });
-async function renderAlarm(kind) {
-  const Off = window.OfflineAudioContext || window.webkitOfflineAudioContext, sr = 22050;
-  const mk = async (sec, rise) => {
-    const ctx = new Off(1, Math.round(sr * sec), sr), m = ctx.createGain();
-    if (rise) { m.gain.setValueAtTime(0.04, 0); m.gain.exponentialRampToValueAtTime(1, sec * 0.92); } else m.gain.value = 1;
-    m.connect(ctx.destination);
-    const step = kind === 'sinos' ? 2.4 : 0.6;
-    let i = 0;
-    for (let t = 0.05; t < sec - 0.3; t += step) scheduleNote(ctx, m, kind, i++, t);
-    const b = await renderCtx(ctx);
-    return wavBlob(b.getChannelData(0), sr);
-  };
-  return { rise: await mk(60, true), loop: await mk(9.6, false) };
+const SR = 22050, RAMP_S = 20, RAMP_FROM = 0.3;
+/** Renderiza um ciclo do som, sem emenda (a cauda volta para o início), comprimido e no volume máximo. */
+async function renderLoop(kind) {
+  const Off = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  const loopS = kind === 'epico' ? EPIC.bars * 4 * 60 / EPIC.bpm : 9.6, tail = 1.6;
+  const ctx = new Off(1, Math.round(SR * (loopS + tail)), SR);
+  const comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = -22; comp.knee.value = 6; comp.ratio.value = 8; comp.attack.value = .003; comp.release.value = .12;
+  comp.connect(ctx.destination);
+  if (kind === 'epico') scheduleEpic(ctx, comp);
+  else { const step = kind === 'sinos' ? 2.4 : 0.6; let i = 0; for (let t = 0; t < loopS - 1e-6; t += step) scheduleNote(ctx, comp, kind, i++, t); }
+  const all = (await renderCtx(ctx)).getChannelData(0), n = Math.round(SR * loopS), d = all.slice(0, n);
+  for (let k = n; k < all.length; k++) d[k - n] += all[k];
+  let pk = 0; for (let k = 0; k < n; k++) pk = Math.max(pk, Math.abs(d[k]));
+  const gain = pk > 0 ? 0.97 / pk : 1;
+  for (let k = 0; k < n; k++) d[k] *= gain;
+  return d;
 }
+function rampCopy(loop) { // 20 s subindo de 30% a 100%
+  const n = SR * RAMP_S, out = new Float32Array(n);
+  for (let k = 0; k < n; k++) out[k] = loop[k % loop.length] * (RAMP_FROM * Math.pow(1 / RAMP_FROM, Math.min(1, k / (n * .95))));
+  return out;
+}
+
+/* ---- música escolhida pelo usuário (fica só neste aparelho) ---- */
+const Files = {
+  db: null, mem: {},
+  open() {
+    if (!this.db) this.db = new Promise((res, rej) => {
+      const r = indexedDB.open('mare', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('files');
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    });
+    return this.db;
+  },
+  async put(k, v) {
+    this.mem[k] = v;
+    try {
+      const db = await this.open();
+      await new Promise((res, rej) => { const t = db.transaction('files', 'readwrite'); t.objectStore('files').put(v, k); t.oncomplete = res; t.onerror = () => rej(t.error); });
+      return true;
+    } catch (e) { return false; }
+  },
+  async get(k) {
+    if (this.mem[k]) return this.mem[k];
+    try {
+      const db = await this.open();
+      const v = await new Promise(res => { const r = db.transaction('files').objectStore('files').get(k); r.onsuccess = () => res(r.result || null); r.onerror = () => res(null); });
+      if (v) this.mem[k] = v;
+      return v;
+    } catch (e) { return null; }
+  }
+};
+
 const AudioOut = {
-  ctx: null, a: null, b: null, urls: {}, silent: null, playing: false, timer: null, master: null,
+  ctx: null, a: null, b: null, urls: {}, silent: null, playing: false, timer: null, master: null, src: null, volT: null, prevT: null, customUrl: null,
   unlock() { // chamado de forma síncrona dentro do toque
     try { if (!this.ctx) { const AC = window.AudioContext || window.webkitAudioContext; this.ctx = new AC(); } this.ctx.resume(); } catch (e) {}
     if (!this.silent) this.silent = URL.createObjectURL(wavBlob(new Float32Array(2205), 22050));
     ['a', 'b'].forEach(k => {
       if (!this[k]) { const el = new Audio(); el.setAttribute('playsinline', ''); el.preload = 'auto'; this[k] = el; }
       const el = this[k]; el.src = this.silent; el.muted = true;
-      const p = el.play(); if (p && p.then) p.then(() => { el.pause(); el.muted = false; }).catch(() => { el.muted = false; });
+      const p = el.play(); if (p && p.then) p.then(() => { if (el.src === this.silent) el.pause(); el.muted = false; }).catch(() => { el.muted = false; });
     });
   },
   async prepare(kind) {
+    if (kind === 'custom') return null;
     if (this.urls[kind]) return this.urls[kind];
-    const r = await renderAlarm(kind);
-    this.urls[kind] = { rise: URL.createObjectURL(r.rise), loop: URL.createObjectURL(r.loop) };
+    const data = await renderLoop(kind);
+    this.urls[kind] = { data, loop: URL.createObjectURL(wavBlob(data, SR)), rise: URL.createObjectURL(wavBlob(rampCopy(data), SR)) };
     return this.urls[kind];
+  },
+  async playCustom(full) {
+    const f = await Files.get('alarm'); if (!f || !f.blob || !this.b) return false;
+    if (this.customUrl) URL.revokeObjectURL(this.customUrl);
+    this.customUrl = URL.createObjectURL(f.blob);
+    const b = this.b, ramp = settings.ramp && !full;
+    b.onended = null; b.muted = false; b.src = this.customUrl; b.loop = true; b.volume = ramp ? RAMP_FROM : 1;
+    try { await b.play(); } catch (e) { return false; }
+    clearInterval(this.volT);
+    if (ramp) {
+      const t0 = Date.now();
+      this.volT = setInterval(() => { const p = Math.min(1, (Date.now() - t0) / (RAMP_S * 1000)); try { b.volume = RAMP_FROM + (1 - RAMP_FROM) * p; } catch (e) {} if (p >= 1) clearInterval(this.volT); }, 250);
+    }
+    return true;
   },
   async play(kind) {
     this.playing = true;
     try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+    if (kind === 'custom') { if (await this.playCustom()) return; kind = 'epico'; }
     let u = null; try { u = await this.prepare(kind); } catch (e) {}
     if (u && this.a && this.playing) {
       const a = this.a, b = this.b;
-      a.loop = false; a.muted = false; a.src = u.rise;
-      a.onended = () => { if (!this.playing) return; b.muted = false; b.src = u.loop; b.loop = true; b.play().catch(() => this.synth(kind)); };
-      try { await a.play(); return; } catch (e) {}
+      const loopNow = () => { b.onended = null; b.muted = false; b.volume = 1; b.src = u.loop; b.loop = true; return b.play(); };
+      try {
+        if (settings.ramp) {
+          a.loop = false; a.muted = false; a.volume = 1; a.src = u.rise;
+          a.onended = () => { if (this.playing) loopNow().catch(() => this.bufferPlay(kind)); };
+          await a.play();
+        } else await loopNow();
+        return;
+      } catch (e) {}
     }
-    if (this.playing) this.synth(kind);
+    if (this.playing) this.bufferPlay(kind);
+  },
+  bufferPlay(kind, seconds) { // plano B: toca o mesmo som pelo AudioContext
+    const L = this.urls[kind], ctx = this.ctx;
+    if (!ctx) return;
+    if (!L) return this.synth(kind === 'sinos' ? 'sinos' : 'amanhecer', seconds);
+    try { ctx.resume(); } catch (e) {}
+    const buf = ctx.createBuffer(1, L.data.length, SR); buf.copyToChannel(L.data, 0);
+    const src = ctx.createBufferSource(), g = ctx.createGain(), t0 = ctx.currentTime;
+    src.buffer = buf; src.loop = true;
+    if (settings.ramp && !seconds) { g.gain.setValueAtTime(RAMP_FROM, t0); g.gain.exponentialRampToValueAtTime(1, t0 + RAMP_S); } else g.gain.value = 1;
+    src.connect(g); g.connect(ctx.destination); src.start();
+    if (seconds) src.stop(t0 + seconds);
+    this.src = src; this.master = g;
   },
   synth(kind, seconds) {
     const ctx = this.ctx; if (!ctx) return;
     try { ctx.resume(); } catch (e) {}
     const m = ctx.createGain(), t0 = ctx.currentTime;
-    if (seconds) m.gain.value = .6; else { m.gain.setValueAtTime(.05, t0); m.gain.linearRampToValueAtTime(.9, t0 + 60); }
+    if (seconds) m.gain.value = 1; else { m.gain.setValueAtTime(.3, t0); m.gain.linearRampToValueAtTime(1, t0 + RAMP_S); }
     m.connect(ctx.destination); this.master = m;
     let t = t0 + .08, i = 0; const step = kind === 'sinos' ? 2.4 : 0.6, end = seconds ? t0 + seconds : Infinity;
     const sched = () => { while (t < ctx.currentTime + 2.5 && t < end) { scheduleNote(ctx, m, kind, i++, t); t += step; } };
     sched(); clearInterval(this.timer); this.timer = setInterval(sched, 800);
     if (seconds) setTimeout(() => { clearInterval(this.timer); }, seconds * 1000);
   },
-  preview(kind) { this.stop(); this.unlock(); this.synth(kind, 5); },
+  async preview(kind) {
+    this.stop(); this.unlock();
+    clearTimeout(this.prevT);
+    this.prevT = setTimeout(() => this.stop(), 8000);
+    if (kind === 'custom') { if (!(await this.playCustom(true))) { clearTimeout(this.prevT); toast('Escolha uma música primeiro.'); } return; }
+    let u = null; try { u = await this.prepare(kind); } catch (e) {}
+    if (!u) return this.synth(kind === 'sinos' ? 'sinos' : 'amanhecer', 6);
+    const b = this.b; b.onended = null; b.muted = false; b.volume = 1; b.loop = true; b.src = u.loop;
+    b.play().catch(() => this.bufferPlay(kind, 8));
+  },
   stop() {
     this.playing = false;
+    clearInterval(this.volT); this.volT = null;
     [this.a, this.b].forEach(el => { if (el) { el.onended = null; el.pause(); } });
     clearInterval(this.timer); this.timer = null;
+    if (this.src) { try { this.src.stop(); } catch (e) {} this.src = null; }
     if (this.master) { try { this.master.disconnect(); } catch (e) {} this.master = null; }
   }
 };
@@ -979,13 +1160,15 @@ async function startSession(mode) {
     exitFs(); return;
   }
   const now = Date.now();
-  const s = { id: 's' + now, mode, start: now, epochs: [], sound: settings.sound, mattress: settings.mattress, sensors: { motion: perm === 'granted', mic } };
+  let sound = settings.sound;
+  if (sound === 'custom' && !(await Files.get('alarm'))) { sound = 'epico'; toast('Não achei a música escolhida neste aparelho. Vou usar o som Épico.'); }
+  const s = { id: 's' + now, mode, start: now, epochs: [], sound, mattress: settings.mattress, sensors: { motion: perm === 'granted', mic } };
   if (mode === 'night') { s.wakeBy = nextAt(settings.wakeBy); s.windowMin = settings.windowMin; }
   else s.napMin = settings.napMin;
   Alarm.ringing = false;
   Tracker.begin(s);
   Wake.on();
-  AudioOut.prepare(settings.sound).catch(() => {});
+  AudioOut.prepare(sound).catch(() => {});
   UI.showSleep(s);
   setTimeout(() => { if (Motion.on && Motion.events === 0) toast('O acelerômetro não está enviando dados neste aparelho. O sono será estimado só pelo som.'); }, 4000);
 }
@@ -1291,11 +1474,38 @@ wakeIn.addEventListener('input', () => { if (wakeIn.value) { settings.wakeBy = w
 bindPressed($('#winChips'), 'windowMin', renderNight);
 bindPressed($('#matSeg'), 'mattress');
 bindPressed($('#sndSeg'), 'sound');
+const customBtn = $('#sndSeg [data-v="custom"]');
+async function renderCustom() {
+  const f = await Files.get('alarm'), info = $('#customInfo');
+  info.hidden = !(settings.sound === 'custom' && f);
+  if (f) { info.textContent = ''; info.append(`Minha música: ${f.name} · `); const t = document.createElement('button'); t.textContent = 'Trocar'; t.onclick = () => $('#customFile').click(); info.append(t); }
+}
+customBtn.onclick = async () => {
+  if (await Files.get('alarm')) { settings.sound = 'custom'; saveSettings(); $$('#sndSeg [data-v]').forEach(b => b.setAttribute('aria-pressed', String(b === customBtn))); renderCustom(); }
+  else $('#customFile').click();
+};
+$$('#sndSeg [data-v]').forEach(b => { if (b !== customBtn) b.addEventListener('click', () => renderCustom()); });
+$('#customFile').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  if (!/^audio\//.test(f.type) && !/\.(mp3|m4a|aac|ogg|oga|opus|wav|flac)$/i.test(f.name)) { toast('Esse arquivo não é de áudio. Escolha um MP3, M4A, OGG ou WAV.'); return; }
+  if (f.size > 40 * 1024 * 1024) { toast('A música passa de 40 MB. Escolha um arquivo menor.'); return; }
+  const saved = await Files.put('alarm', { blob: f, name: f.name, type: f.type });
+  settings.sound = 'custom'; saveSettings();
+  $$('#sndSeg [data-v]').forEach(b => b.setAttribute('aria-pressed', String(b === customBtn)));
+  renderCustom();
+  toast(saved ? `Alarme: ${f.name}. Toque em Ouvir para testar.` : 'Não consegui guardar a música neste navegador. Ela vale só até fechar o app.');
+});
+renderCustom();
+const rampSw = $('#rampSw');
+rampSw.setAttribute('aria-checked', String(settings.ramp));
+rampSw.onclick = () => { settings.ramp = !settings.ramp; rampSw.setAttribute('aria-checked', String(settings.ramp)); saveSettings(); };
 bindPressed($('#napList'), 'napMin', renderNap);
 const micSw = $('#micSw');
 micSw.setAttribute('aria-checked', String(settings.mic));
 micSw.onclick = () => { settings.mic = !settings.mic; micSw.setAttribute('aria-checked', String(settings.mic)); saveSettings(); };
 $('#preview').onclick = () => AudioOut.preview(settings.sound);
+$$('.tabs button').forEach(b => b.addEventListener('click', () => { if (!Tracker.sess) AudioOut.stop(); }));
 $('#startNight').onclick = () => startSession('night');
 $('#startNap').onclick = () => startSession('nap');
 
