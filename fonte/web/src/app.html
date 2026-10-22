@@ -54,10 +54,31 @@ a{color:var(--ember)}
 .panel{display:flex;flex-direction:column;gap:18px;padding-top:20px}
 
 .eyebrow{font:500 12px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0}
-.wake-wrap{display:flex;flex-direction:column;gap:4px}
-.wake-time{appearance:none;-webkit-appearance:none;font:250 clamp(68px,23vw,108px)/1 var(--f-display);font-variant-numeric:tabular-nums;letter-spacing:-.03em;color:var(--ink);background:transparent;border:0;padding:0;margin:0;width:100%;min-height:1.1em;text-align:left}
-.wake-time::-webkit-calendar-picker-indicator{display:none}
-.wake-time::-webkit-date-and-time-value{text-align:left}
+.wake-wrap{display:flex;flex-direction:column;gap:6px}
+.wake-time{display:flex;align-items:center;gap:14px;width:100%;border:0;background:transparent;color:var(--ink);padding:0;margin:0;text-align:left;cursor:pointer}
+.wake-time .t{font:250 clamp(68px,23vw,108px)/1 var(--f-display);font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+.wake-time .edit{font:500 12px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ember);border:1px solid rgba(255,157,92,.45);border-radius:999px;padding:6px 10px;white-space:nowrap}
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.steps button{border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:12px;padding:10px 4px;font:500 14px var(--f-mono);font-variant-numeric:tabular-nums}
+.steps button:active{background:var(--panel-2)}
+.sheet-modal{position:fixed;inset:0;z-index:60;display:flex;align-items:flex-end;justify-content:center}
+.ts-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.6)}
+.ts-panel{position:relative;width:100%;max-width:540px;background:var(--panel);border:1px solid var(--line);border-bottom:0;border-radius:22px 22px 0 0;
+  padding-block:18px calc(env(safe-area-inset-bottom,0px) + 18px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:14px;animation:sheetUp .22s ease-out}
+@keyframes sheetUp{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+.wheels{position:relative;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;height:220px}
+.wheel{height:220px;overflow-y:scroll;scroll-snap-type:y mandatory;scrollbar-width:none;position:relative;z-index:1;outline:none;
+  -webkit-mask-image:linear-gradient(transparent,#000 32%,#000 68%,transparent);mask-image:linear-gradient(transparent,#000 32%,#000 68%,transparent)}
+.wheel::-webkit-scrollbar{display:none}
+.wheel .pad{height:88px}
+.wheel .it{height:44px;line-height:44px;text-align:center;scroll-snap-align:center;font:300 34px var(--f-display);font-variant-numeric:tabular-nums;color:var(--muted);cursor:pointer}
+.wheel .it.on{color:var(--ink)}
+.wheel:focus-visible{box-shadow:inset 0 0 0 2px var(--ember);border-radius:12px}
+.wheels .colon{font:300 34px var(--f-display);color:var(--ink);z-index:1;padding:0 6px}
+.wheel-band{position:absolute;left:0;right:0;top:88px;height:44px;border-radius:12px;background:var(--panel-2);border:1px solid var(--line);pointer-events:none}
+.ts-actions{display:grid;grid-template-columns:1fr 2fr;gap:10px}
+.ts-actions .btn-primary{padding:15px}
 .line{margin:0;font-size:17px;text-wrap:pretty}
 .line b{color:var(--ember);font-weight:700}
 .sub{margin:0;color:var(--muted);font-size:14px}
@@ -249,10 +270,14 @@ details.tbl[open] summary{margin-bottom:8px}
   <!-- NOITE -->
   <section class="panel" id="p-noite" role="tabpanel" aria-labelledby="tab-noite">
     <div class="wake-wrap">
-      <p class="eyebrow"><label for="wakeBy">Acordar até</label></p>
-      <input class="wake-time" id="wakeBy" type="time" value="06:30" required>
+      <p class="eyebrow" id="wakeLbl">Acordar até</p>
+      <button type="button" class="wake-time" id="wakeBtn" aria-haspopup="dialog"><span class="t" id="wakeTxt">06:30</span><span class="edit">Alterar</span></button>
+      <div class="steps" role="group" aria-label="Ajuste rápido do horário">
+        <button type="button" data-d="-60">−1 h</button><button type="button" data-d="-15">−15 min</button>
+        <button type="button" data-d="15">+15 min</button><button type="button" data-d="60">+1 h</button>
+      </div>
       <p class="line" id="nightLine"></p>
-      <p class="sub mono" id="nightSpan"></p>
+      <p class="sub" id="bedLine"></p>
     </div>
 
     <div>
@@ -476,6 +501,22 @@ details.tbl[open] summary{margin-bottom:8px}
 <!-- RELATÓRIO -->
 <div id="report" class="overlay sheet" hidden>
   <div class="sheet-in" id="reportIn"></div>
+</div>
+
+<!-- SELETOR DE HORÁRIO -->
+<div id="timeSheet" class="sheet-modal" role="dialog" aria-modal="true" aria-labelledby="tsTitle" hidden>
+  <div class="ts-backdrop" id="tsBackdrop"></div>
+  <div class="ts-panel">
+    <p class="eyebrow" id="tsTitle">Acordar até</p>
+    <div class="wheels">
+      <div class="wheel-band" aria-hidden="true"></div>
+      <div class="wheel" id="whH" tabindex="0" role="listbox" aria-label="Hora"></div>
+      <span class="colon">:</span>
+      <div class="wheel" id="whM" tabindex="0" role="listbox" aria-label="Minutos"></div>
+    </div>
+    <p class="sub" id="tsInfo"></p>
+    <div class="ts-actions"><button type="button" class="btn-ghost" id="tsCancel">Cancelar</button><button type="button" class="btn-primary" id="tsSave">Salvar</button></div>
+  </div>
 </div>
 
 <div id="toast" class="toast" role="status" hidden></div>
@@ -1504,11 +1545,24 @@ function nightCard(s) {
   requestAnimationFrame(() => drawHypno($('canvas', b), s, sc, true));
   return b;
 }
+function typicalLatency() {
+  try { const l = realNights().slice(0, 7).map(n => n.latency).filter(v => v != null).sort((a, b) => a - b); if (l.length >= 3) return Math.min(45, Math.max(5, Math.round(l[l.length >> 1]))); } catch (e) {}
+  return 15;
+}
+function bedPlan(wakeBy, now = Date.now()) {
+  const lat = typicalLatency(), bed5 = wakeBy - (450 + lat) * 60000, bed6 = wakeBy - (540 + lat) * 60000;
+  if (now < bed5 - 5 * 60000) {
+    return `Para dormir 7 h 30 min (5 ciclos), deite por volta de <b>${hm(bed5)}</b>${now < bed6 - 5 * 60000 ? `; para 9 h (6 ciclos), ${hm(bed6)}` : ''}. Já conto ${lat} min para você pegar no sono.`;
+  }
+  const sleepMin = (wakeBy - now) / 60000 - lat;
+  return sleepMin > 30 ? `Deitando agora, dá cerca de <b>${durTxt(sleepMin)}</b> de sono (≈ ${num(sleepMin / 90)} ciclos), contando ${lat} min para pegar no sono.` : '';
+}
 function renderNight() {
   const wb = nextAt(settings.wakeBy), now = Date.now(), ws = Math.max(now, wb - settings.windowMin * 60000);
+  $('#wakeTxt').textContent = settings.wakeBy;
+  $('#wakeBtn').setAttribute('aria-label', `Acordar até ${settings.wakeBy}. Toque para alterar.`);
   $('#nightLine').innerHTML = `Vou te acordar entre <b>${hm(ws)}</b> e <b>${hm(wb)}</b>, no primeiro movimento de sono leve. Sem movimento, toco às ${hm(wb)}.`;
-  const mins = (wb - now) / 60000;
-  $('#nightSpan').textContent = `Daqui até ${hm(wb)}: ${durTxt(mins)} · ≈ ${num(mins / 90)} ciclos de 90 min`;
+  $('#bedLine').innerHTML = bedPlan(wb, now);
 }
 function renderNap() {
   const now = Date.now(), m = settings.napMin;
@@ -1732,10 +1786,62 @@ function selectTab(name) {
 TABS.forEach(t => $('#tab-' + t).onclick = () => selectTab(t));
 
 /* controles */
-const wakeIn = $('#wakeBy');
-wakeIn.value = settings.wakeBy;
-wakeIn.addEventListener('change', () => { if (wakeIn.value) { settings.wakeBy = wakeIn.value; saveSettings(); renderNight(); } });
-wakeIn.addEventListener('input', () => { if (wakeIn.value) { settings.wakeBy = wakeIn.value; saveSettings(); renderNight(); } });
+/* horário de acordar: seletor próprio (rodas de hora e minuto) + ajuste rápido */
+const toMin = t => { const [h, m] = String(t).split(':').map(Number); return ((h || 0) * 60 + (m || 0)) % 1440; };
+const fromMin = m => { m = ((m % 1440) + 1440) % 1440; return `${pad(Math.floor(m / 60))}:${pad(m % 60)}`; };
+function setWake(t) { settings.wakeBy = t; saveSettings(); renderNight(); }
+$$('.steps [data-d]').forEach(b => b.addEventListener('click', () => setWake(fromMin(toMin(settings.wakeBy) + +b.dataset.d))));
+const ITEM = 44, HOURS = Array.from({ length: 24 }, (_, i) => i), MINS = Array.from({ length: 12 }, (_, i) => i * 5);
+const Wheel = (el, values) => {
+  el.innerHTML = '<div class="pad"></div>' + values.map((v, i) => `<div class="it" role="option" id="${el.id}-${i}" data-i="${i}">${pad(v)}</div>`).join('') + '<div class="pad"></div>';
+  const items = $$('.it', el);
+  const w = {
+    get i() { return Math.max(0, Math.min(values.length - 1, Math.round(el.scrollTop / ITEM))); },
+    get v() { return values[w.i]; },
+    set(i, smooth) { el.scrollTo({ top: i * ITEM, behavior: smooth ? 'smooth' : 'auto' }); w.mark(i); },
+    mark(i = w.i) {
+      items.forEach((it, k) => { it.classList.toggle('on', k === i); it.setAttribute('aria-selected', String(k === i)); });
+      el.setAttribute('aria-activedescendant', `${el.id}-${i}`);
+    }
+  };
+  let raf = 0;
+  el.addEventListener('scroll', () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { w.mark(); tsInfo(); }); }, { passive: true });
+  el.addEventListener('click', e => { const it = e.target.closest('.it'); if (it) w.set(+it.dataset.i, true); });
+  el.addEventListener('keydown', e => {
+    const d = e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : e.key === 'PageDown' ? 3 : e.key === 'PageUp' ? -3 : 0;
+    if (d) { e.preventDefault(); w.set(Math.max(0, Math.min(values.length - 1, w.i + d)), true); }
+    else if (e.key === 'Enter') { e.preventDefault(); $('#tsSave').click(); }
+  });
+  return w;
+};
+let WH = null, WM = null, sheetReturn = null;
+const sheetTime = () => `${pad(WH.v)}:${pad(WM.v)}`;
+function tsInfo() {
+  if (!WH) return;
+  const wb = nextAt(sheetTime());
+  $('#tsInfo').innerHTML = `Janela ${hm(wb - settings.windowMin * 60000)}–${hm(wb)}. ${bedPlan(wb)}`;
+}
+function openTimeSheet() {
+  if (!WH) { WH = Wheel($('#whH'), HOURS); WM = Wheel($('#whM'), MINS); }
+  sheetReturn = document.activeElement;
+  $('#timeSheet').hidden = false; document.body.style.overflow = 'hidden';
+  const m = toMin(settings.wakeBy), mm = Math.round((m % 60) / 5) % 12;
+  requestAnimationFrame(() => { WH.set(Math.floor(m / 60) % 24); WM.set(mm); tsInfo(); $('#whH').focus({ preventScroll: true }); });
+  try { history.pushState({ mareSheet: 1 }, ''); } catch (e) {}
+}
+function closeTimeSheet(fromHistory) {
+  if ($('#timeSheet').hidden) return;
+  $('#timeSheet').hidden = true;
+  if ($$('.overlay').every(o => o.hidden)) document.body.style.overflow = '';
+  if (!fromHistory) { try { if (history.state && history.state.mareSheet) history.back(); } catch (e) {} }
+  if (sheetReturn && sheetReturn.focus) sheetReturn.focus({ preventScroll: true });
+}
+$('#wakeBtn').addEventListener('click', openTimeSheet);
+$('#tsCancel').addEventListener('click', () => closeTimeSheet());
+$('#tsBackdrop').addEventListener('click', () => closeTimeSheet());
+$('#tsSave').addEventListener('click', () => { setWake(sheetTime()); closeTimeSheet(); toast(`Acordar até ${settings.wakeBy}.`); });
+window.addEventListener('popstate', () => closeTimeSheet(true));
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#timeSheet').hidden) closeTimeSheet(); });
 bindPressed($('#winChips'), 'windowMin', renderNight);
 bindPressed($('#matSeg'), 'mattress');
 bindPressed($('#sndSeg'), 'sound');
