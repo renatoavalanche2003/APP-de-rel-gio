@@ -178,6 +178,30 @@ details.card[open] summary::after{content:"–"}
 .al-actions{position:relative;display:flex;flex-direction:column;gap:10px}
 .btn-dawn{border:0;border-radius:18px;background:#fff3e4;color:#2a140b;font:650 22px var(--f-display);padding:20px}
 .btn-dawn-ghost{border:1px solid rgba(255,243,228,.5);background:transparent;color:#fff3e4;border-radius:14px;padding:14px;font-weight:700}
+.al-task{position:relative;flex:1;display:flex;flex-direction:column;gap:18px;justify-content:space-between;max-width:480px;width:100%;margin:0 auto}
+.tk-head{display:flex;flex-direction:column;gap:8px}
+.tk-title{margin:0;font:600 26px/1.15 var(--f-display);text-wrap:balance}
+.tk-bar{height:8px;border-radius:5px;background:rgba(255,243,228,.18);overflow:hidden}
+.tk-bar i{display:block;height:100%;width:0;background:#fff3e4;transition:width .2s}
+.tk-note{margin:0;font-size:14px;opacity:.85;min-height:1.4em}
+.tk-body{display:flex;flex-direction:column;gap:14px}
+.tk-prob{font:300 clamp(40px,12vw,58px)/1.1 var(--f-display);text-align:center;font-variant-numeric:tabular-nums;margin:0}
+.tk-ans{min-height:58px;border-radius:14px;background:rgba(0,0,0,.28);border:1px solid rgba(255,243,228,.35);font:500 34px/58px var(--f-mono);text-align:center;font-variant-numeric:tabular-nums}
+.tk-ans.bad,.mem-grid.bad{animation:nope .35s}
+.tk-ans.bad{border-color:#ff7c6e}
+@keyframes nope{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+.keypad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.keypad button{border:0;border-radius:14px;background:rgba(255,243,228,.14);color:#fff3e4;font:500 26px var(--f-display);padding:13px 0;touch-action:manipulation}
+.keypad button:active{background:rgba(255,243,228,.3)}
+.keypad button.ok{background:#fff3e4;color:#2a140b;font-weight:650;font-size:20px}
+.tk-count{text-align:center;font:250 clamp(84px,28vw,140px)/1 var(--f-display);font-variant-numeric:tabular-nums;margin:0}
+.tk-count small{font:400 22px var(--f-body);opacity:.8;margin-left:6px;letter-spacing:0}
+.tk-hint{text-align:center;margin:0;font-size:17px}
+.mem-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;width:min(100%,330px);margin:0 auto}
+.mem-grid button{aspect-ratio:1;border:0;border-radius:16px;background:rgba(255,243,228,.14);transition:background .12s,transform .12s;touch-action:manipulation}
+.mem-grid button.lit{background:#fff3e4;transform:scale(.95)}
+.mem-grid button.miss{background:#ff7c6e}
+.seg-3{grid-template-columns:repeat(3,minmax(0,1fr))}
 
 .sheet{background:var(--night);overflow-y:auto;-webkit-overflow-scrolling:touch}
 .sheet-in{max-width:540px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:16px}
@@ -317,6 +341,22 @@ details.tbl[open] summary{margin-bottom:8px}
         <span><span class="lbl">Volume crescente</span><span class="hint">Começa em 30% e chega ao máximo em 20 s. Desligado, toca no máximo desde o início.</span></span>
         <button class="switch" id="rampSw" role="switch" aria-checked="true" aria-label="Volume crescente"></button>
       </div>
+      <div class="snd">
+        <div class="row">
+          <span><span class="lbl">Tarefa para desligar</span><span class="hint">O alarme só para depois da tarefa. O som baixa enquanto você faz e volta ao máximo se você parar por 20 s.</span></span>
+          <button class="btn-link" id="taskTry" hidden>Testar</button>
+        </div>
+        <div class="seg seg-grid seg-3" id="taskSeg">
+          <button data-v="none">Nenhuma</button><button data-v="math">Contas</button><button data-v="shake">Sacudir</button>
+          <button data-v="memory">Memória</button><button data-v="walk">Andar</button>
+        </div>
+        <div class="seg" id="lvlSeg" hidden><button data-v="facil">Fácil</button><button data-v="medio">Médio</button><button data-v="dificil">Difícil</button></div>
+        <p class="note" id="taskInfo" hidden></p>
+      </div>
+      <div class="row">
+        <span><span class="lbl">Soneca</span><span class="hint">Desligada, o alarme não oferece soneca.</span></span>
+        <button class="switch" id="snoozeSw" role="switch" aria-checked="true" aria-label="Permitir soneca"></button>
+      </div>
     </div>
 
     <button class="btn-primary" id="startNight">Começar a noite</button>
@@ -407,6 +447,9 @@ details.tbl[open] summary{margin-bottom:8px}
       <h2>Cochilo</h2>
       <p>Depois de uma noite cortada para cerca de 5 h, um cochilo de 10 min trouxe melhora imediata de sonolência e desempenho; o de 20 min, melhora a partir de uns 35 min depois; o de 30 min causou inércia antes de ajudar (Brooks &amp; Lack, 2006). Como o N3 aparece mais cedo quando você está em dívida de sono, o cronômetro do Maré conta a partir do início do sono detectado.</p>
 
+      <h2>Tarefa para desligar</h2>
+      <p>Desligar o alarme ainda grogue e voltar a dormir é comum: nos primeiros minutos, a inércia do sono reduz atenção e julgamento (Tassi &amp; Muzet, 2000). A tarefa obriga alguns minutos de vigília ativa antes de o alarme parar, e "Andar" ainda tira você da cama. As contas parecem mais difíceis logo ao acordar justamente por causa da inércia, então vale começar pelo nível fácil. A luz está entre as contramedidas estudadas para a inércia (Hilditch &amp; McHill, 2019): abra a janela ou acenda a luz enquanto faz a tarefa.</p>
+
       <h2>Como o algoritmo decide</h2>
       <ul>
         <li>Épocas de 30 s. A atividade de cada época soma a intensidade de movimento de cada segundo acima do ruído do próprio aparelho (limiar adaptativo: percentil 30 dos últimos 10 min).</li>
@@ -486,6 +529,16 @@ details.tbl[open] summary{margin-bottom:8px}
     <button class="btn-dawn" id="alStop">Acordei</button>
     <button class="btn-dawn-ghost" id="alSnooze">Soneca 5 min</button>
   </div>
+  <div class="al-task" id="alTask" hidden>
+    <div class="tk-head">
+      <p class="al-eyebrow" id="tkEyebrow">Para desligar</p>
+      <p class="tk-title" id="tkTitle"></p>
+      <div class="tk-bar" role="progressbar" aria-label="Progresso da tarefa" aria-valuemin="0" aria-valuemax="100" id="tkBarWrap"><i id="tkBar"></i></div>
+      <p class="tk-note" id="tkNote" aria-live="polite"></p>
+    </div>
+    <div class="tk-body" id="tkBody"></div>
+    <button class="btn-dawn-ghost" id="tkExit" hidden>Fechar teste</button>
+  </div>
 </div>
 
 <!-- KSS -->
@@ -546,7 +599,7 @@ const store = {
   del(k) { try { localStorage.removeItem(k); } catch (e) {} }
 };
 const KEY = { settings: 'mare.settings.v1', sessions: 'mare.sessions.v1', active: 'mare.active.v1' };
-const DEFAULTS = { wakeBy: '06:30', windowMin: 30, mic: true, mattress: 'medio', sound: 'epico', napMin: 20, ramp: true, sv: 2, range: 7, metric: 'tst' };
+const DEFAULTS = { wakeBy: '06:30', windowMin: 30, mic: true, mattress: 'medio', sound: 'epico', napMin: 20, ramp: true, sv: 2, range: 7, metric: 'tst', task: 'none', taskLevel: 'medio', snooze: true };
 const settings = Object.assign({}, DEFAULTS, store.get(KEY.settings, {}));
 if ((settings.sv || 1) < 2) { if (settings.sound === 'amanhecer') settings.sound = 'epico'; settings.sv = 2; }
 const saveSettings = () => store.set(KEY.settings, settings);
@@ -737,7 +790,12 @@ const Files = {
 };
 
 const AudioOut = {
-  ctx: null, a: null, b: null, urls: {}, silent: null, playing: false, timer: null, master: null, src: null, volT: null, prevT: null, customUrl: null,
+  ctx: null, a: null, b: null, urls: {}, silent: null, playing: false, timer: null, master: null, src: null, volT: null, prevT: null, customUrl: null, lvl: 1, rampV: null,
+  level(f) { // baixa o alarme enquanto a tarefa é feita
+    this.lvl = f;
+    [this.a, this.b].forEach(el => { if (el) { try { el.volume = Math.max(0, Math.min(1, (el === this.b && this.rampV != null ? this.rampV : 1) * f)); } catch (e) {} } });
+    if (this.master && this.ctx) { try { const g = this.master.gain, t = this.ctx.currentTime; g.cancelScheduledValues(t); g.setTargetAtTime(f, t, .05); } catch (e) {} }
+  },
   unlock() { // chamado de forma síncrona dentro do toque
     try { if (!this.ctx) { const AC = window.AudioContext || window.webkitAudioContext; this.ctx = new AC(); } this.ctx.resume(); } catch (e) {}
     if (!this.silent) this.silent = URL.createObjectURL(wavBlob(new Float32Array(2205), 22050));
@@ -759,26 +817,27 @@ const AudioOut = {
     if (this.customUrl) URL.revokeObjectURL(this.customUrl);
     this.customUrl = URL.createObjectURL(f.blob);
     const b = this.b, ramp = settings.ramp && !full;
-    b.onended = null; b.muted = false; b.src = this.customUrl; b.loop = true; b.volume = ramp ? RAMP_FROM : 1;
+    this.rampV = ramp ? RAMP_FROM : 1;
+    b.onended = null; b.muted = false; b.src = this.customUrl; b.loop = true; b.volume = this.rampV * this.lvl;
     try { await b.play(); } catch (e) { return false; }
     clearInterval(this.volT);
     if (ramp) {
       const t0 = Date.now();
-      this.volT = setInterval(() => { const p = Math.min(1, (Date.now() - t0) / (RAMP_S * 1000)); try { b.volume = RAMP_FROM + (1 - RAMP_FROM) * p; } catch (e) {} if (p >= 1) clearInterval(this.volT); }, 250);
+      this.volT = setInterval(() => { const p = Math.min(1, (Date.now() - t0) / (RAMP_S * 1000)); this.rampV = RAMP_FROM + (1 - RAMP_FROM) * p; try { b.volume = this.rampV * this.lvl; } catch (e) {} if (p >= 1) clearInterval(this.volT); }, 250);
     }
     return true;
   },
   async play(kind) {
-    this.playing = true;
+    this.playing = true; this.lvl = 1; this.rampV = null;
     try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
     if (kind === 'custom') { if (await this.playCustom()) return; kind = 'epico'; }
     let u = null; try { u = await this.prepare(kind); } catch (e) {}
     if (u && this.a && this.playing) {
       const a = this.a, b = this.b;
-      const loopNow = () => { b.onended = null; b.muted = false; b.volume = 1; b.src = u.loop; b.loop = true; return b.play(); };
+      const loopNow = () => { b.onended = null; b.muted = false; b.volume = this.lvl; b.src = u.loop; b.loop = true; return b.play(); };
       try {
         if (settings.ramp) {
-          a.loop = false; a.muted = false; a.volume = 1; a.src = u.rise;
+          a.loop = false; a.muted = false; a.volume = this.lvl; a.src = u.rise;
           a.onended = () => { if (this.playing) loopNow().catch(() => this.bufferPlay(kind)); };
           await a.play();
         } else await loopNow();
@@ -822,7 +881,7 @@ const AudioOut = {
     b.play().catch(() => this.bufferPlay(kind, 8));
   },
   stop() {
-    this.playing = false;
+    this.playing = false; this.lvl = 1; this.rampV = null;
     clearInterval(this.volT); this.volT = null;
     [this.a, this.b].forEach(el => { if (el) { el.onended = null; el.pause(); } });
     clearInterval(this.timer); this.timer = null;
@@ -994,6 +1053,9 @@ const Alarm = {
     }
   },
   fire(reason) {
+    if (Task.active && !Task.preview) { // a soneca acabou no meio da tarefa: volta a tocar, baixo
+      this.ringing = true; Sound.stop(); AudioOut.play(Tracker.sess ? Tracker.sess.sound : settings.sound); Task.duck(); return;
+    }
     const s = Tracker.sess; if (!s) return;
     this.ringing = true;
     if (!s.alarm) s.alarm = { at: Date.now(), reason, stage: Tracker.score ? Tracker.score.stage[Tracker.score.stage.length - 1] : null };
@@ -1033,6 +1095,7 @@ async function startSession(mode) {
   setTimeout(() => { if (Motion.on && Motion.events === 0) toast('O acelerômetro não está enviando dados neste aparelho. O sono será estimado só pelo som.'); }, 4000);
 }
 function finish(endReason) {
+  Task.reset();
   const s = Tracker.sess; if (!s) return;
   Alarm.silence(); Tracker.end(); exitFs();
   const now = Date.now();
@@ -1450,6 +1513,9 @@ const UI = {
     if (s && s.mode === 'night' && (reason === 'move' || reason === 'light')) txt += ` ${durTxt((s.wakeBy - Date.now()) / 60000)} antes do limite.`;
     $('#alReason').textContent = txt;
     $('#alEyebrow').textContent = reason === 'nap' || reason === 'cap' ? 'Fim do cochilo' : 'Bom dia';
+    $('#alarm .al-center').hidden = false; $('#alarm .al-actions').hidden = false; $('#alTask').hidden = true;
+    $('#alSnooze').hidden = settings.snooze === false;
+    $('#alStop').textContent = Task.required() ? `Acordei · ${TASKS[settings.task].label.toLowerCase()}` : 'Acordei';
     const sun = $('#alarm .sun'); sun.style.animation = 'none'; void sun.offsetWidth; sun.style.animation = '';
     this.show('#alarm');
   },
@@ -1885,17 +1951,192 @@ $('#startNap').onclick = () => startSession('nap');
 /* tela de sono */
 $('#sleep').addEventListener('pointerdown', e => { if (!e.target.closest('#holdStop')) UI.wake(); });
 const hold = $('#holdStop'); let holdT = null;
-hold.addEventListener('pointerdown', e => { e.preventDefault(); UI.wake(); hold.classList.add('holding'); holdT = setTimeout(() => { hold.classList.remove('holding'); finish('manual'); }, 1500); });
+hold.addEventListener('pointerdown', e => { e.preventDefault(); UI.wake(); hold.classList.add('holding'); holdT = setTimeout(() => {
+  hold.classList.remove('holding');
+  const s = Tracker.sess;
+  if (Task.required() && s && s.alarm && s.snoozeUntil) Task.start({ onDone: () => finish() }); // na soneca, encerrar também pede a tarefa
+  else finish('manual');
+}, 1500); });
 ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => hold.addEventListener(ev, () => { hold.classList.remove('holding'); clearTimeout(holdT); }));
 hold.addEventListener('contextmenu', e => e.preventDefault());
 
 /* alarme */
-$('#alStop').onclick = () => finish();
+$('#alStop').onclick = () => { if (Task.required()) Task.start({ onDone: () => finish() }); else finish(); };
 $('#alSnooze').onclick = () => {
   const s = Tracker.sess; if (!s) return;
   Alarm.silence(); s.snoozeUntil = Date.now() + 5 * 60000; s.snoozes = (s.snoozes || 0) + 1;
   UI.hide('#alarm'); UI.wake();
   $('#slLine').textContent = `Soneca até ${hm(s.snoozeUntil)}.`;
+};
+
+/* ---------------- tarefa para desligar ---------------- */
+const TASKS = {
+  math: { label: 'Contas', goal: { facil: 3, medio: 3, dificil: 4 }, title: n => `Resolva ${n} contas` },
+  shake: { label: 'Sacudir', goal: { facil: 25, medio: 50, dificil: 90 }, title: n => `Sacuda o celular ${n} vezes` },
+  memory: { label: 'Memória', goal: { facil: 4, medio: 6, dificil: 8 }, title: n => `Repita a sequência de ${n} quadrados` },
+  walk: { label: 'Andar', goal: { facil: 20, medio: 40, dificil: 70 }, title: n => `Ande ${n} passos com o celular na mão` }
+};
+const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const Task = {
+  active: false, preview: false, kind: null, goal: 0, done: 0, onDone: null, idleT: null, watchT: null, memT: [], handler: null,
+  required() { return !!(settings.task && TASKS[settings.task]); },
+  start(o = {}) {
+    this.reset();
+    this.kind = o.kind || settings.task; this.preview = !!o.preview; this.onDone = o.onDone || null;
+    this.goal = TASKS[this.kind].goal[settings.taskLevel] || TASKS[this.kind].goal.medio; this.done = 0; this.active = true;
+    $('#alarm .al-center').hidden = true; $('#alarm .al-actions').hidden = true; $('#alTask').hidden = false;
+    $('#tkExit').hidden = !this.preview;
+    $('#tkEyebrow').textContent = this.preview ? 'Teste da tarefa' : 'Para desligar';
+    $('#tkTitle').textContent = TASKS[this.kind].title(this.goal);
+    this.note(this.preview ? 'No teste não toca som.' : '');
+    UI.show('#alarm');
+    this.duck();
+    ({ math: () => this.mathView(), shake: () => this.moveView('shake'), walk: () => this.moveView('walk'), memory: () => this.memView() })[this.kind]();
+    this.progress();
+  },
+  reset() {
+    this.active = false; clearTimeout(this.idleT); clearTimeout(this.watchT); this.memT.forEach(clearTimeout); this.memT = [];
+    if (this.handler) { window.removeEventListener('devicemotion', this.handler); this.handler = null; }
+    $('#alTask').hidden = true; $('#alarm .al-center').hidden = false; $('#alarm .al-actions').hidden = false;
+  },
+  note(t) { $('#tkNote').textContent = t; },
+  progress() {
+    const p = Math.min(100, Math.round(this.done / this.goal * 100));
+    $('#tkBar').style.width = p + '%'; $('#tkBarWrap').setAttribute('aria-valuenow', String(p));
+  },
+  duck() { // som baixo e sem vibração enquanto você faz a tarefa
+    if (Alarm.ringing) { AudioOut.level(.3); Vib.stop(); this.note('Som baixo enquanto você faz a tarefa.'); }
+    this.touch();
+  },
+  touch() {
+    clearTimeout(this.idleT);
+    if (Alarm.ringing && AudioOut.lvl > .5) { AudioOut.level(.3); Vib.stop(); this.note('Som baixo enquanto você faz a tarefa.'); }
+    this.idleT = setTimeout(() => { if (this.active && Alarm.ringing) { AudioOut.level(1); Vib.start(); this.note('Voltou a tocar: continue a tarefa para desligar.'); } }, 20000);
+  },
+  step() { this.done++; this.progress(); this.touch(); if (this.done >= this.goal) this.complete(); },
+  complete() {
+    const prev = this.preview, cb = this.onDone;
+    this.reset();
+    if (prev) { UI.hide('#alarm'); toast('Tarefa concluída. De manhã vai ser assim.'); return; }
+    if (cb) cb();
+  },
+  // ---- contas ----
+  mathView() {
+    $('#tkBody').innerHTML = `<p class="tk-prob" id="tkProb"></p><div class="tk-ans" id="tkAns" aria-live="polite">&nbsp;</div>
+      <div class="keypad">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button type="button" data-k="${n}">${n}</button>`).join('')}
+      <button type="button" data-k="del" aria-label="Apagar">⌫</button><button type="button" data-k="0">0</button><button type="button" data-k="ok" class="ok">OK</button></div>`;
+    this.entry = '';
+    $$('#tkBody .keypad button').forEach(b => b.addEventListener('click', () => this.key(b.dataset.k)));
+    this.mathNew();
+  },
+  mathNew() {
+    const L = settings.taskLevel; let a, b, c, txt, ans;
+    if (L === 'facil') { a = rnd(12, 49); b = rnd(12, 49); txt = `${a} + ${b}`; ans = a + b; }
+    else if (L === 'dificil') { a = rnd(6, 9); b = rnd(12, 24); c = rnd(13, Math.min(59, a * b - 5)); txt = `${a} × ${b} − ${c}`; ans = a * b - c; }
+    else { a = rnd(3, 9); b = rnd(11, 19); c = rnd(11, 49); txt = `${a} × ${b} + ${c}`; ans = a * b + c; }
+    this.ans = ans; this.entry = '';
+    $('#tkProb').textContent = `${txt} = ?`; $('#tkAns').innerHTML = '&nbsp;';
+  },
+  key(k) {
+    this.touch();
+    const box = $('#tkAns');
+    if (k === 'del') this.entry = this.entry.slice(0, -1);
+    else if (k === 'ok') {
+      if (!this.entry) return;
+      if (+this.entry === this.ans) { this.step(); if (this.active) { this.note('Certo.'); this.mathNew(); } return; }
+      box.classList.remove('bad'); void box.offsetWidth; box.classList.add('bad');
+      this.note('Errou. Outra conta.'); setTimeout(() => this.active && this.mathNew(), 450); return;
+    } else if (this.entry.length < 4) this.entry += k;
+    box.textContent = this.entry || ' ';
+  },
+  // ---- sacudir / andar ----
+  moveView(kind) {
+    $('#tkBody').innerHTML = `<p class="tk-count"><span id="tkNum">0</span><small>/ ${this.goal}</small></p>
+      <p class="tk-hint">${kind === 'shake' ? 'Sacuda o celular com força, para cima e para baixo.' : 'Levante e ande segurando o celular. Sacudir parado não conta.'}</p>`;
+    let ema = null, lp = null, mean = null, prev = null, last = 0, got = false, armed = true;
+    this.handler = e => {
+      const g = e.accelerationIncludingGravity; if (!g || g.x == null) return;
+      got = true;
+      const t = e.timeStamp || performance.now(), m = Math.hypot(g.x, g.y, g.z);
+      if (kind === 'shake') {
+        const a = e.acceleration && e.acceleration.x != null ? Math.hypot(e.acceleration.x, e.acceleration.y, e.acceleration.z)
+          : (ema = ema == null ? m : ema + .1 * (m - ema), Math.abs(m - ema));
+        if (a > 13 && armed && t - last > 200) { armed = false; last = t; this.step(); $('#tkNum') && ($('#tkNum').textContent = this.done); }
+        else if (a < 6) armed = true;
+      } else {
+        lp = lp == null ? m : lp + .25 * (m - lp); mean = mean == null ? lp : mean + .03 * (lp - mean);
+        if (prev != null && prev > mean + 1.2 && lp < prev && prev < mean + 8 && t - last > 300) { last = t; this.step(); $('#tkNum') && ($('#tkNum').textContent = this.done); }
+        prev = lp;
+      }
+    };
+    window.addEventListener('devicemotion', this.handler);
+    this.watchT = setTimeout(() => { // sem sensor: troca para contas
+      if (this.active && !got) { const keep = this.onDone, pv = this.preview; this.start({ kind: 'math', onDone: keep, preview: pv }); this.note('O sensor de movimento não respondeu. Troquei para contas.'); }
+    }, 4000);
+  },
+  // ---- memória ----
+  memView() {
+    $('#tkBody').innerHTML = `<p class="tk-hint" id="tkMem">Observe a sequência…</p>
+      <div class="mem-grid" id="tkGrid">${Array.from({ length: 9 }, (_, i) => `<button type="button" data-c="${i}" aria-label="Quadrado ${i + 1}"></button>`).join('')}</div>`;
+    $$('#tkGrid button').forEach(b => b.addEventListener('click', () => this.memTap(+b.dataset.c, b)));
+    this.memNew();
+  },
+  memNew() {
+    this.memT.forEach(clearTimeout); this.memT = [];
+    this.seq = []; for (let i = 0; i < this.goal; i++) { let c; do c = rnd(0, 8); while (c === this.seq[i - 1]); this.seq.push(c); }
+    this.pos = 0; this.memState = 'show'; this.done = 0; this.progress();
+    $('#tkMem').textContent = 'Observe a sequência…';
+    const cells = $$('#tkGrid button');
+    this.seq.forEach((c, i) => {
+      this.memT.push(setTimeout(() => cells[c].classList.add('lit'), 700 + i * 650));
+      this.memT.push(setTimeout(() => cells[c].classList.remove('lit'), 700 + i * 650 + 420));
+    });
+    this.memT.push(setTimeout(() => { this.memState = 'input'; $('#tkMem').textContent = `Sua vez: toque na mesma ordem (0/${this.goal}).`; }, 700 + this.seq.length * 650));
+  },
+  memTap(c, btn) {
+    this.touch();
+    if (this.memState !== 'input') return;
+    if (c === this.seq[this.pos]) {
+      btn.classList.add('lit'); setTimeout(() => btn.classList.remove('lit'), 180);
+      this.pos++; $('#tkMem').textContent = `Sua vez: toque na mesma ordem (${this.pos}/${this.goal}).`;
+      this.step();
+    } else {
+      this.memState = 'wait'; btn.classList.add('miss');
+      const g = $('#tkGrid'); g.classList.remove('bad'); void g.offsetWidth; g.classList.add('bad');
+      $('#tkMem').textContent = 'Errou. Observe de novo.';
+      this.memT.push(setTimeout(() => { btn.classList.remove('miss'); this.active && this.memNew(); }, 900));
+    }
+  }
+};
+$('#alTask').addEventListener('pointerdown', () => Task.active && Task.touch());
+$('#tkExit').addEventListener('click', () => { Task.reset(); UI.hide('#alarm'); });
+
+function renderTask() {
+  const on = Task.required();
+  $('#lvlSeg').hidden = !on; $('#taskInfo').hidden = !on; $('#taskTry').hidden = !on;
+  if (!on) return;
+  const n = TASKS[settings.task].goal[settings.taskLevel];
+  const ex = { facil: '37 + 26', medio: '7 × 13 + 24', dificil: '8 × 17 − 43' }[settings.taskLevel];
+  $('#taskInfo').textContent = {
+    math: `${n} contas como ${ex}, num teclado grande. Errou, vem outra.`,
+    shake: `${n} sacudidas fortes.`,
+    memory: `Uma sequência de ${n} quadrados acesos; errou, recomeça com outra.`,
+    walk: `${n} passos com o celular na mão: obriga você a sair da cama.`
+  }[settings.task] + ' Vale para a noite e para o cochilo.';
+}
+bindPressed($('#taskSeg'), 'task', renderTask);
+bindPressed($('#lvlSeg'), 'taskLevel', renderTask);
+renderTask();
+const snoozeSw = $('#snoozeSw');
+snoozeSw.setAttribute('aria-checked', String(settings.snooze !== false));
+snoozeSw.onclick = () => { settings.snooze = settings.snooze === false; snoozeSw.setAttribute('aria-checked', String(settings.snooze)); saveSettings(); };
+$('#taskTry').onclick = async () => {
+  if (!Task.required()) return;
+  if (settings.task === 'shake' || settings.task === 'walk') {
+    const p = await Motion.request();
+    if (p !== 'granted') { toast('Sem acesso ao sensor de movimento. Libere nas permissões do navegador ou escolha outra tarefa.'); return; }
+  }
+  Task.start({ preview: true });
 };
 
 /* teste de sensores */
